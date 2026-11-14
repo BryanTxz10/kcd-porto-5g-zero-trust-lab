@@ -14,27 +14,32 @@ cilium_cli_version: "v0.16.7"
 hubble_cli_version: "v0.13.3"
 metrics_server_version: "v0.7.1"
 
-# --- Interruptor de arquitectura (docs/guia-vms-realista.md) ---
+# --- Interruptor de arquitectura (docs/guia-vms-realista.md, docs/fase1-multus.md) ---
 # deploy_multus: true  -> arquitectura de TRES redes: mgmt (VMnet8), access
 #                         (LAN segment ACCESS, N2+N3) y n6 (LAN segment N6).
-#                         Multus da a AMF, gNB y UPF una interfaz ipvlan L2
-#                         sobre las NIC 'access'/'n6' de los workers, y dn-gw
-#                         hace de router N6. Pendiente de Fase 1: los roles
-#                         de Multus/ipvlan y dn-gw aún no existen; las tareas
-#                         actuales de site.yml (macvlan, NAD n2-net) son las
-#                         del lab v2 y se reescribirán en esa fase.
+#                         Multus da a AMF, gNB y UPF interfaces ipvlan L2
+#                         sobre las NIC 'access'/'n6' de los workers (un NAD
+#                         con IP estática por NF, ver multus_nads), y dn-gw
+#                         hace de router N6 con MASQUERADE hacia internet.
+#                         Fase 1. NO verificado aún en clúster.
 # deploy_multus: false -> plan B, UNA sola red: todo viaja por la red de pods
 #                         de Cilium (así lo vieron las políticas C1-C3 en el
 #                         lab v2). Solo hace falta la NIC mgmt; dn-gw no se usa.
 deploy_multus: false
 multus_version: "v4.0.2"
-# Nombre de la NIC padre de la ipvlan en los workers. Netplan la renombra por
-# MAC a 'access' (ver la guía); el nombre real por host está en host_vars/.
+# Plugins CNI de referencia (ipvlan, static) que Multus delega. Cilium solo
+# instala cilium-cni en /opt/cni/bin, así que hay que traerlos. Se verifican
+# con el .sha256 publicado junto al tarball.
+cni_plugins_version: "v1.4.1"
+cni_bin_dir: "/opt/cni/bin"
+# Nombre de las NIC padre de las ipvlan en los workers. Netplan las renombra
+# por MAC (ver la guía); deben llamarse igual en todos los workers porque el
+# NAD es del clúster, no del nodo.
 multus_master_iface: "access"
+multus_n6_iface: "n6"
 
 # Plan de direcciones de las redes access y n6 (solo con deploy_multus: true).
-# IP fijas de las NF en la red de acceso y en N6, y pool de los UE. Las usa
-# la Fase 1 (NAD de Multus con IPAM estático, values del UPF y rutas de dn-gw).
+# IP fijas de las NF en la red de acceso y en N6, y pool de los UE.
 access_cidr: "10.10.0.0/24"
 n6_cidr: "10.10.6.0/24"
 amf_n2_ip: "10.10.0.10"        # AMF (N2), corre en node-worker1
@@ -43,6 +48,22 @@ upf_n3_ip: "10.10.0.30"        # UPF lado N3, corre en node-worker2
 upf_n6_ip: "10.10.6.30"        # UPF lado N6, corre en node-worker2
 dn_gw_n6_ip: "10.10.6.1"       # dn-gw, puerta de enlace de N6
 ue_pool_cidr: "10.45.0.0/16"   # pool de IP de los UE (sesiones PDU)
+
+# Un NetworkAttachmentDefinition por interfaz de NF, con su IP fija dentro
+# (IPAM static). Así cada NAD es auditable por sí solo ("upf-n6 = 10.10.6.30
+# sobre n6") y un pod que no debe estar en la red no puede pedir IP en ella.
+# 'iface' es el nombre de la interfaz dentro del pod. Plantilla:
+# templates/multus-nads.yaml.j2
+multus_nads:
+  - { name: amf-n2, namespace: "{{ ns_cp }}", master: "{{ multus_master_iface }}", ip: "{{ amf_n2_ip }}", cidr: "{{ access_cidr }}", iface: n2 }
+  - { name: gnb-access, namespace: "{{ ns_ran }}", master: "{{ multus_master_iface }}", ip: "{{ gnb_access_ip }}", cidr: "{{ access_cidr }}", iface: access }
+  - { name: upf-n3, namespace: "{{ ns_up }}", master: "{{ multus_master_iface }}", ip: "{{ upf_n3_ip }}", cidr: "{{ access_cidr }}", iface: n3 }
+  - { name: upf-n6, namespace: "{{ ns_up }}", master: "{{ multus_n6_iface }}", ip: "{{ upf_n6_ip }}", cidr: "{{ n6_cidr }}", iface: n6 }
+
+# Tabla de rutas del UPF para el tráfico de los UE (policy routing: lo que
+# sale del pool 10.45.0.0/16 va por n6 hacia dn-gw; el resto, N4 incluido,
+# sigue por la red de pods de Cilium).
+upf_n6_route_table: 106
 
 # --- Núcleo 5G (chart Helm de Gradiant, Open5GS 2.7.5) ---
 # El repo towards5gs-helm NO publica un chart de Open5GS (solo free5GC y

@@ -1,0 +1,35 @@
+# multus-nads.yaml — generado por Ansible desde templates/multus-nads.yaml.j2
+# (variables: multus_nads en group_vars/all.yml). Fase 1, deploy_multus: true.
+#
+# Un NetworkAttachmentDefinition por interfaz de NF, ipvlan L2 sobre la NIC
+# padre del worker y la IP fija dentro del propio NAD (IPAM static). Por qué
+# ipvlan y no macvlan: docs/guia-vms-realista.md §0.
+#
+# Lo que viaja por estas interfaces (N2, N3, N6) NO pasa por el datapath de
+# Cilium: ninguna CiliumNetworkPolicy lo ve ni lo filtra. Es el "giro 1" de
+# la charla (docs/fase1-multus.md).
+{% for nad in multus_nads %}
+---
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: {{ nad.name }}
+  namespace: {{ nad.namespace }}
+  labels:
+    cib46.io/component: multus
+  annotations:
+    cib46.io/interface: "{{ nad.iface }}"
+spec:
+  config: |
+    {
+      "cniVersion": "0.3.1",
+      "name": "{{ nad.name }}",
+      "type": "ipvlan",
+      "master": "{{ nad.master }}",
+      "mode": "l2",
+      "ipam": {
+        "type": "static",
+        "addresses": [ { "address": "{{ nad.ip }}/{{ nad.cidr.split('/')[1] }}" } ]
+      }
+    }
+{% endfor %}

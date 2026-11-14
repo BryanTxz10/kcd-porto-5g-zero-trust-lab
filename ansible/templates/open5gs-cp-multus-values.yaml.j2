@@ -1,0 +1,18 @@
+# open5gs-cp-multus-values.yaml — generado por Ansible (Fase 1, deploy_multus: true).
+# Se pasa como SEGUNDO -f al release {{ open5gs_release }}, encima de
+# helm-values/open5gs-values.yaml: solo añade lo que cambia con Multus.
+#
+# AMF: interfaz n2 (NAD amf-n2, {{ amf_n2_ip }}) y NGAP escuchando en esa IP.
+#
+# ⚠ NO VERIFICADO contra el chart: se asume que el subchart del AMF de Gradiant
+#   acepta 'podAnnotations' (como el SMF, que ya lo usa en open5gs-values.yaml)
+#   y 'customOpen5gsConfig' fusionado sobre el amf.yaml que genera. Comprueba
+#   con:  helm template ... | grep -A3 ngap   (docs/fase1-multus.md §4).
+amf:
+  podAnnotations:
+    k8s.v1.cni.cncf.io/networks: '[{"name": "amf-n2", "interface": "n2"}]'
+  customOpen5gsConfig:
+    amf:
+      ngap:
+        server:
+          - address: {{ amf_n2_ip }}

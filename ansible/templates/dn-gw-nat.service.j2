@@ -1,0 +1,13 @@
+# dn-gw-nat.service — generado por Ansible (Fase 1).
+[Unit]
+Description=dn-gw: MASQUERADE del pool de UE ({{ ue_pool_cidr }}) por {{ mgmt_iface }}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/dn-gw-nat.sh
+
+[Install]
+WantedBy=multi-user.target

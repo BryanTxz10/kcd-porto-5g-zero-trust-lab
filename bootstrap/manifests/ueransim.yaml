@@ -13,6 +13,13 @@
 #     (gnbSearchList). Antes apuntaba al AMF, que no habla RLS.
 #   - Ambos esperan a que el DNS del otro extremo exista antes de arrancar.
 #
+# Fase 1 (deploy_multus: true, solo por Ansible): un patch añade la red
+# 'access' de Multus y las variables N2_IP, N3_IP y AMF_N2_ADDR al gNB
+# (ansible/templates/ueransim-gnb-multus-patch.yaml.j2). Sin ellas, el gNB
+# se comporta como en el lab v2. No las añadas aquí: 'kubectl apply' de este
+# fichero deshará cualquier valor que fije el patch para variables que
+# también estén en el manifiesto.
+#
 # Labels alineados con las CiliumNetworkPolicy y los checks:
 #   - gNB: app.kubernetes.io/name=ueransim-gnb  (c1/03-allow-gnb-to-amf-n2.yaml)
 #   - UE : app.kubernetes.io/name=ueransim-ue; el pod contiene 'ues' en el nombre
@@ -57,11 +64,16 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
             - |
-              until getent hosts "$AMF_HOST" >/dev/null; do
-                echo "Esperando DNS del AMF ($AMF_HOST)..."; sleep 2
+              N2_IP="${N2_IP:-$POD_IP}"
+              N3_IP="${N3_IP:-$POD_IP}"
+              AMF="${AMF_N2_ADDR:-$AMF_HOST}"
+              until getent hosts "$AMF" >/dev/null; do
+                echo "Esperando DNS del AMF ($AMF)..."; sleep 2
               done
-              sed "s/__POD_IP__/${POD_IP}/g" /config/gnb.yaml > /tmp/gnb.yaml
-              echo "gNB con IP ${POD_IP}; AMF en $(getent hosts "$AMF_HOST" | awk '{print $1}')"
+              sed -e "s/__POD_IP__/${POD_IP}/g" -e "s/__N2_IP__/${N2_IP}/g" \
+                  -e "s/__N3_IP__/${N3_IP}/g" -e "s/__AMF_N2__/${AMF}/g" \
+                  /config/gnb.yaml > /tmp/gnb.yaml
+              echo "gNB: radio ${POD_IP}, N2 ${N2_IP}, N3 ${N3_IP}; AMF en $(getent hosts "$AMF" | awk '{print $1}')"
               exec /ueransim/build/nr-gnb -c /tmp/gnb.yaml
           securityContext:
             capabilities: { add: ["NET_ADMIN"] }

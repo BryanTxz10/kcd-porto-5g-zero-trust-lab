@@ -1,0 +1,14 @@
+#!/bin/sh
+# dn-gw-nat.sh — generado por Ansible (Fase 1). Idempotente.
+# CGNAT del pool de UE hacia internet por la NIC mgmt, y reenvío solo entre
+# n6 y mgmt (nada más cruza dn-gw).
+set -eu
+POOL="{{ ue_pool_cidr }}"
+N6="{{ n6_iface }}"
+WAN="{{ mgmt_iface }}"
+
+add() { iptables -C "$@" 2>/dev/null || iptables -A "$@"; }
+
+add POSTROUTING -t nat -s "$POOL" -o "$WAN" -j MASQUERADE
+add FORWARD -i "$N6" -o "$WAN" -s "$POOL" -j ACCEPT
+add FORWARD -i "$WAN" -o "$N6" -d "$POOL" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
