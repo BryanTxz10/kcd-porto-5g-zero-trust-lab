@@ -9,7 +9,7 @@ version = "0.1.0"
 description = "Deriva CiliumNetworkPolicy L7 y un mapa de radio de impacto desde los OpenAPI 3GPP de la SBI 5G"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
-dependencies = ["PyYAML==6.0.2"]
+dependencies = ["PyYAML==6.0.3"]
 
 [project.scripts]
 spec2policy = "spec2policy.cli:main"
