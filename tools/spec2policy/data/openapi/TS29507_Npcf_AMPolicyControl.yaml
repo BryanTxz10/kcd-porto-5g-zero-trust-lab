@@ -1,0 +1,42 @@
+# Extracto generado por scripts/make_extracts.py desde jdegre/5GC_APIs@06137ac51e2cc19a6d767bb63a27563d27841b3a
+# Fichero origen: TS29507_Npcf_AMPolicyControl.yaml. Solo se conservan info, servers y paths con
+# método/operationId/summary; se eliminan esquemas, parámetros y respuestas.
+# NO EDITAR A MANO: regenerar con el script.
+openapi: 3.0.0
+info:
+  title: Npcf_AMPolicyControl
+  version: 1.2.1
+externalDocs:
+  description: 3GPP TS 29.507 V17.9.0; 5G System; Access and Mobility Policy Control Service.
+  url: https://www.3gpp.org/ftp/Specs/archive/29_series/29.507/
+servers:
+  - url: '{apiRoot}/npcf-am-policy-control/v1'
+    variables:
+      apiRoot:
+        default: https://example.com
+        description: apiRoot as defined in clause 4.4 of 3GPP TS 29.501
+paths:
+  /policies:
+    post:
+      operationId: CreateIndividualAMPolicyAssociation
+      summary: Create individual AM policy association.
+  /policies/{polAssoId}:
+    get:
+      operationId: ReadIndividualAMPolicyAssociation
+      summary: Read individual AM policy association.
+    delete:
+      operationId: DeleteIndividualAMPolicyAssociation
+      summary: Delete individual AM policy association.
+  /policies/{polAssoId}/update:
+    post:
+      operationId: ReportObservedEventTriggersForIndividualAMPolicyAssociation
+      summary: 'Report observed event triggers and obtain updated policies for an individual AM policy
+        association.
+
+        '
+x-spec2policy:
+  source: jdegre/5GC_APIs
+  commit: 06137ac51e2cc19a6d767bb63a27563d27841b3a
+  file: TS29507_Npcf_AMPolicyControl.yaml
+  resolved_refs: []
+  path_prefixes: []

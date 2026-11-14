@@ -1,0 +1,28 @@
+# Extracto generado por scripts/make_extracts.py desde jdegre/5GC_APIs@06137ac51e2cc19a6d767bb63a27563d27841b3a
+# Fichero origen: TS29531_Nnssf_NSSelection.yaml. Solo se conservan info, servers y paths con
+# método/operationId/summary; se eliminan esquemas, parámetros y respuestas.
+# NO EDITAR A MANO: regenerar con el script.
+openapi: 3.0.0
+info:
+  title: NSSF NS Selection
+  version: 2.2.1
+externalDocs:
+  description: 3GPP TS 29.531 V17.7.0; 5G System; Network Slice Selection Services; Stage 3
+  url: https://www.3gpp.org/ftp/Specs/archive/29_series/29.531/
+servers:
+  - url: '{apiRoot}/nnssf-nsselection/v2'
+    variables:
+      apiRoot:
+        default: https://example.com
+        description: apiRoot as defined in clause 4.4 of 3GPP TS 29.501
+paths:
+  /network-slice-information:
+    get:
+      operationId: NSSelectionGet
+      summary: Retrieve the Network Slice Selection Information
+x-spec2policy:
+  source: jdegre/5GC_APIs
+  commit: 06137ac51e2cc19a6d767bb63a27563d27841b3a
+  file: TS29531_Nnssf_NSSelection.yaml
+  resolved_refs: []
+  path_prefixes: []

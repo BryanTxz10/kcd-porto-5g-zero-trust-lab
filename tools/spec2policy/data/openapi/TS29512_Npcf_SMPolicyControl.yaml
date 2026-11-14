@@ -1,0 +1,40 @@
+# Extracto generado por scripts/make_extracts.py desde jdegre/5GC_APIs@06137ac51e2cc19a6d767bb63a27563d27841b3a
+# Fichero origen: TS29512_Npcf_SMPolicyControl.yaml. Solo se conservan info, servers y paths con
+# método/operationId/summary; se eliminan esquemas, parámetros y respuestas.
+# NO EDITAR A MANO: regenerar con el script.
+openapi: 3.0.0
+info:
+  title: Npcf_SMPolicyControl API
+  version: 1.2.4
+externalDocs:
+  description: 3GPP TS 29.512 V17.11.0; 5G System; Session Management Policy Control Service.
+  url: https://www.3gpp.org/ftp/Specs/archive/29_series/29.512/
+servers:
+  - url: '{apiRoot}/npcf-smpolicycontrol/v1'
+    variables:
+      apiRoot:
+        default: https://example.com
+        description: apiRoot as defined in clause 4.4 of 3GPP TS 29.501
+paths:
+  /sm-policies:
+    post:
+      operationId: CreateSMPolicy
+      summary: Create a new Individual SM Policy
+  /sm-policies/{smPolicyId}:
+    get:
+      operationId: GetSMPolicy
+      summary: Read an Individual SM Policy
+  /sm-policies/{smPolicyId}/update:
+    post:
+      operationId: UpdateSMPolicy
+      summary: Update an existing Individual SM Policy
+  /sm-policies/{smPolicyId}/delete:
+    post:
+      operationId: DeleteSMPolicy
+      summary: Delete an existing Individual SM Policy
+x-spec2policy:
+  source: jdegre/5GC_APIs
+  commit: 06137ac51e2cc19a6d767bb63a27563d27841b3a
+  file: TS29512_Npcf_SMPolicyControl.yaml
+  resolved_refs: []
+  path_prefixes: []
