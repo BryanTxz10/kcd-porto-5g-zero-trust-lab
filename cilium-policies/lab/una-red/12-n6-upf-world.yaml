@@ -1,0 +1,15 @@
+# N6 en el plan B: el UPF saca el tráfico de los UE por eth0 con su propio
+# NAT, así que necesita world en Cilium. Solo world: ni el clúster ni el API
+# server (eso es 'cluster'/'kube-apiserver', no 'world').
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: n6-upf-world
+  namespace: 5g-up
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: upf
+  egress:
+    - toEntities:
+        - world

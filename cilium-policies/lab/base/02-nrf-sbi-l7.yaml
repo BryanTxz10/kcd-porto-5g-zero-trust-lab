@@ -1,0 +1,37 @@
+# NRF: solo las NF del core y solo las operaciones de Nnrf_NFManagement y
+# Nnrf_NFDiscovery (TS 29.510). Al llevar reglas http, Cilium pasa este
+# tráfico por su proxy: Hubble ve método y ruta (lo que usa spec2policy) y
+# una ruta fuera de la lista recibe 403.
+# Con mTLS en la SBI (Fase 4) el proxy ya no puede leer la petición.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: nrf-sbi-l7
+  namespace: 5g-cp
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: nrf
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/instance: open5gs-cp
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values: [amf, ausf, bsf, nssf, pcf, scp, smf, udm, udr]
+      toPorts:
+        - ports:
+            - { port: "7777", protocol: TCP }
+          rules:
+            http:
+              - { method: GET, path: "/nnrf-disc/v1/.*" }
+              - { method: GET, path: "/nnrf-nfm/v1/.*" }
+              - { method: PUT, path: "/nnrf-nfm/v1/nf-instances/.*" }
+              - { method: PATCH, path: "/nnrf-nfm/v1/nf-instances/.*" }
+              - { method: DELETE, path: "/nnrf-nfm/v1/nf-instances/.*" }
+              - { method: POST, path: "/nnrf-nfm/v1/subscriptions" }
+              - { method: PATCH, path: "/nnrf-nfm/v1/subscriptions/.*" }
+              - { method: DELETE, path: "/nnrf-nfm/v1/subscriptions/.*" }
+              - { method: POST, path: "/oauth2/token" }

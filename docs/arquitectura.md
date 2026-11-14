@@ -94,7 +94,7 @@ Las referencias exactas están pendientes de añadir a `docs/referencias.bib`.
 | 0 | VMs, redes y SO | [`guia-vms-realista.md`](guia-vms-realista.md) |
 | 1 | Redes dedicadas con Multus y dn-gw | [`pruebas-fase1.md`](pruebas-fase1.md) |
 | 2 | Controles en las redes dedicadas: L2, Kyverno, MultiNetworkPolicy | [`pruebas-fase2.md`](pruebas-fase2.md) |
-| 3 | Cilium para lo que queda en la red de pods; WireGuard entre nodos | `pruebas-fase3.md` |
+| 3 | Cilium para lo que queda en la red de pods; WireGuard entre nodos | [`pruebas-fase3.md`](pruebas-fase3.md) |
 | 4 | mTLS en la SBI (`sbi_tls`) | `pruebas-fase4.md` |
 | 5 | Spec-as-policy y blast radius map | [`pruebas-fase5.md`](pruebas-fase5.md) |
 | 6 | Tetragon: cortar en el kernel | `pruebas-fase6.md` |

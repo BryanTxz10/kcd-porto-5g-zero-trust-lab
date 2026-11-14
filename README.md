@@ -96,21 +96,23 @@ fijadas por SHA y escaneo de secretos bloqueante. La carpeta `legacy/` queda
 **fuera del alcance de los linters** por estar deprecada. Detalle y roles de
 seguridad: `docs/ci-cd-seguridad.md`. Réplica local: `make ci`.
 
-## Capas de política (demo)
+## Políticas de Cilium (Fase 3)
 
-Las políticas de `cilium-policies/` se organizan en capas incrementales que sirven
-de pasos de la demostración (no como condiciones experimentales con hipótesis):
+Lo que queda en la red de pods lo protege Cilium con una base común y un overlay
+por modo (`cilium-policies/lab/`):
 
-| Capa | Qué añade |
-|---|---|
-| c0 | Ancla permisiva (baseline sin segmentación) |
-| c1 | Microsegmentación L3/L4 con Cilium |
-| c2 | c1 + identidad de workload eBPF |
-| c3 | c2 + autorización L7 por rol (SCP) |
-| c2-spire / c3-spire | c2 / c3 + autenticación mutua con SPIRE (`authentication: required`) |
+| | Plan B (`deploy_multus: false`) | Redes dedicadas (`true`) |
+|---|---|---|
+| Default deny de ingress y egress, SBI solo entre identidades de NF, NRF con L7, N4 solo SMF→UPF, MongoDB restringido, 5g-cp sin `world`, RLS dentro de 5g-ran | ✔ | ✔ |
+| N2, N3 y salida del UPF a `world` | en Cilium | por Multus (Fase 2); el UPF no tiene egress en la red de pods |
 
-El paso entre capas es declarativo con Kustomize: `make condition C=c1` (… c2, c3).
-Para una comprobación estática de los flujos L3/L4 sin clúster: `make policy-matrix`.
+El playbook aplica el overlay del modo al final; a mano, `make policies`. Sin
+clúster, `make policy-matrix` evalúa los flujos legítimos y de ataque en los dos
+modos (aproximación L3/L4; también en CI). Cifrado entre nodos con WireGuard:
+`node_encryption: true`. Pruebas: [`docs/pruebas-fase3.md`](docs/pruebas-fase3.md).
+
+Las capas `cilium-policies/conditions/c0…c3` son las de la tesis y se conservan solo
+como referencia (`make condition C=…`).
 
 ## Spec-as-policy y blast radius map (Fase 5)
 

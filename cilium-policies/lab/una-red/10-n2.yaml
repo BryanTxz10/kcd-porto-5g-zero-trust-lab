@@ -1,0 +1,38 @@
+# N2 (NGAP, SCTP 38412) del gNB al AMF por la red de pods (solo plan B).
+# El gNB llega al AMF por el Service headless amf-n2 (Cilium 1.15 no soporta
+# SCTP sobre la VIP de un Service con KPR).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: n2-desde-gnb
+  namespace: 5g-cp
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: amf
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-ran
+            app.kubernetes.io/name: ueransim-gnb
+      toPorts:
+        - ports:
+            - { port: "38412", protocol: SCTP }
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: n2-gnb-a-amf
+  namespace: 5g-ran
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: ueransim-gnb
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/name: amf
+      toPorts:
+        - ports:
+            - { port: "38412", protocol: SCTP }

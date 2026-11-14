@@ -1,0 +1,40 @@
+# Default deny de ingress y egress en los tres namespaces del core.
+# Una regla vacía ({}) activa el enforcement en esa dirección sin permitir
+# nada; lo permitido lo añaden las demás políticas (se suman).
+# Lo que entra desde el propio nodo (probes del kubelet) lo sigue dejando
+# Cilium por defecto.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: default-deny
+  namespace: 5g-cp
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: default-deny
+  namespace: 5g-ran
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: default-deny
+  namespace: 5g-up
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}

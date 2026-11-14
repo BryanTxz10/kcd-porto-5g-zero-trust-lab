@@ -1,0 +1,53 @@
+# N3 (GTP-U, UDP 2152) entre el gNB y el UPF por la red de pods (solo plan
+# B). En los dos sentidos: el UPF abre el flujo de bajada hacia el gNB.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: n3-gnb
+  namespace: 5g-ran
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: ueransim-gnb
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-up
+            app.kubernetes.io/name: upf
+      toPorts:
+        - ports:
+            - { port: "2152", protocol: UDP }
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-up
+            app.kubernetes.io/name: upf
+      toPorts:
+        - ports:
+            - { port: "2152", protocol: UDP }
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: n3-upf
+  namespace: 5g-up
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: upf
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-ran
+            app.kubernetes.io/name: ueransim-gnb
+      toPorts:
+        - ports:
+            - { port: "2152", protocol: UDP }
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-ran
+            app.kubernetes.io/name: ueransim-gnb
+      toPorts:
+        - ports:
+            - { port: "2152", protocol: UDP }

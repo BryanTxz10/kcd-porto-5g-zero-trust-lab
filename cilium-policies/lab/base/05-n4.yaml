@@ -1,0 +1,40 @@
+# N4 (PFCP, UDP 8805): solo del SMF (5g-cp, sitio central) al UPF (5g-up,
+# sitio de borde), cruzando de namespace y de nodo. Las respuestas y los
+# heartbeats del UPF vuelven por conntrack (mismo par de puertos 8805).
+# Con node_encryption: true viaja cifrado con WireGuard entre nodos
+# (TS 33.501 §9.9).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: n4-smf-a-upf
+  namespace: 5g-cp
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: smf
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-up
+            app.kubernetes.io/name: upf
+      toPorts:
+        - ports:
+            - { port: "8805", protocol: UDP }
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: n4-desde-smf
+  namespace: 5g-up
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: upf
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/name: smf
+      toPorts:
+        - ports:
+            - { port: "8805", protocol: UDP }

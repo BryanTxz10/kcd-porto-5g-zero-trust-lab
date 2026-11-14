@@ -1,0 +1,12 @@
+# Redes dedicadas (deploy_multus: true). N2, N3 y N6 van por interfaces de
+# Multus que Cilium no ve: sus reglas no están aquí sino en la Fase 2
+# (admisión y MultiNetworkPolicy). En la red de pods queda solo lo de base/:
+# el UPF no necesita world (N6 sale por su interfaz n6), así que su egress en
+# la red de pods queda vacío; las respuestas PFCP vuelven por conntrack.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+labels:
+  - pairs:
+      kcd.io/policy-mode: multus
+resources:
+  - ../base
