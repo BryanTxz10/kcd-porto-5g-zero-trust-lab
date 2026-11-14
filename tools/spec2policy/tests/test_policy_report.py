@@ -161,7 +161,8 @@ def test_cnp_standard_udm_solo_desde_scp_y_nrf(topo, specs, analysis):
     assert sources == ["nrf", "scp"]
     for i in cnp["spec"]["ingress"]:
         sel = i["fromEndpoints"][0]["matchLabels"]
-        assert sel["io.kubernetes.pod.namespace"] == "5g-cp" and sel["cib46-nf-type"] == "core-nf"
+        assert sel["io.kubernetes.pod.namespace"] == "5g-cp"
+        assert sel["app.kubernetes.io/instance"] == "open5gs-cp"
         assert i["toPorts"][0]["ports"] == [{"port": "7777", "protocol": "TCP"}]
     http = cnp["spec"]["ingress"][1]["toPorts"][0]["rules"]["http"]
     assert {"method": "GET", "path": r"/nudm-sdm/v2/[^/?]+/am-data(\?.*)?"} in http
