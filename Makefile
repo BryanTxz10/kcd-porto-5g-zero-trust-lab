@@ -51,6 +51,10 @@ policies: ## Aplica las políticas de Cilium del lab (MODE=una-red|multus[-tls];
 demo-l7-ciega: ## Fase 4: la misma petición no autorizada al NRF (403 por L7 en claro; con mTLS, L7 ciega)
 	bash bootstrap/checks/demo-l7-ciega.sh
 
+.PHONY: demo-tetragon
+demo-tetragon: ## Fase 6: abrir una shell en el AMF (Tetragon la mata) y ver el evento
+	bash bootstrap/checks/demo-tetragon.sh
+
 .PHONY: policy-matrix
 policy-matrix: ## Matriz de flujos en los dos modos (una-red y multus), sin clúster (aproximación L3/L4)
 	python3 bootstrap/checks/policy-matrix.py .
@@ -72,7 +76,7 @@ kustomize-check: ## Valida que los overlays Kustomize C0-C3 y las MultiNetworkPo
 	  kustomize build --load-restrictor=LoadRestrictionsNone \
 	    cilium-policies/conditions/$$c >/dev/null && echo "ok  $$c"; \
 	done
-	@for d in cilium-policies/lab/una-red cilium-policies/lab/multus cilium-policies/lab/una-red-tls cilium-policies/lab/multus-tls multinetwork-policies; do \
+	@for d in cilium-policies/lab/una-red cilium-policies/lab/multus cilium-policies/lab/una-red-tls cilium-policies/lab/multus-tls multinetwork-policies tetragon-policies; do \
 	  echo "== build $$d =="; \
 	  kustomize build $$d >/dev/null && echo "ok  $$d"; \
 	done

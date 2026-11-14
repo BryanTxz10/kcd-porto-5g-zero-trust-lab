@@ -97,4 +97,17 @@ Las referencias exactas están pendientes de añadir a `docs/referencias.bib`.
 | 3 | Cilium para lo que queda en la red de pods; WireGuard entre nodos | [`pruebas-fase3.md`](pruebas-fase3.md) |
 | 4 | mTLS en la SBI (`sbi_tls`) | [`pruebas-fase4.md`](pruebas-fase4.md) |
 | 5 | Spec-as-policy y blast radius map | [`pruebas-fase5.md`](pruebas-fase5.md) |
-| 6 | Tetragon: cortar en el kernel | `pruebas-fase6.md` |
+| 6 | Tetragon: cortar en el kernel | [`pruebas-fase6.md`](pruebas-fase6.md) |
+
+## 5. Escenarios de la demo
+
+| Escenario | Dónde ocurre | Qué lo para | Cómo se ve | Fase |
+|---|---|---|---|---|
+| **A1** movimiento lateral desde 5g-ran hacia la SBI | red de pods | Cilium: default deny + SBI solo entre identidades de NF | Hubble: `Policy denied DROPPED` | 3 |
+| **A2** suplantar al NRF / pod impostor en 5g-cp | red de pods | Cilium: el impostor no tiene identidad de NF; admisión para las etiquetas | Hubble: DROPPED | 3 (y admisión) |
+| **A3** desde un pod atacante que pide la red `access` | API server | Kyverno: el pod no llega a existir | `kubectl apply` → `denied the request` | 2 |
+| **A3** desde el gNB comprometido | red `access` | Nada: la MultiNetworkPolicy permite el origen. *La política decide quién, no cuánto* | carga en el AMF | 2 |
+| **UE contra el core** desde `uesimtun0` | N6 | dn-gw: el pool de UE no alcanza redes privadas; no toca la red de pods | `tcpdump -ni n6` en dn-gw, contador DROP | 1–2 |
+| **Petición no autorizada al NRF** | SBI | L7 de Cilium en claro (403); con mTLS, L7 ciega | `make demo-l7-ciega` + Hubble | 3–4 |
+| **Compromiso del AMF** (shell dentro) | kernel del nodo | Tetragon: Sigkill antes del `exec` | `make demo-tetragon` + `tetra getevents` | 6 |
+

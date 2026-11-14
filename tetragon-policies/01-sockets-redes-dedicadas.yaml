@@ -1,0 +1,44 @@
+# sockets-redes-dedicadas — Fase 6: observabilidad de las redes dedicadas.
+#
+# Con deploy_multus: true, N2, N3 y N6 viajan por interfaces de Multus que
+# Hubble no ve (Fase 1). Esta política registra, en todo el clúster, qué
+# proceso (binario, pod, contenedor) abre o conecta un socket con una
+# dirección de las redes access (10.10.0.0/24) o n6 (10.10.6.0/24): el AMF
+# escuchando NGAP, el UPF en GTP-U, el gNB, o cualquier otro que no debería.
+# Solo registra (sin acción): es la observabilidad que Hubble ya no da ahí.
+#
+# Ver eventos:
+#   kubectl -n kube-system exec ds/tetragon -c tetragon -- \
+#     tetra getevents -o compact --policy-names sockets-redes-dedicadas
+# ⚠ Supuesto sin verificar: el tipo 'sockaddr' y el operador SAddr con CIDR
+#   en Tetragon 1.1 (docs/pruebas-fase6.md §4). CIDR = group_vars/all.yml.
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: sockets-redes-dedicadas
+spec:
+  kprobes:
+    - call: security_socket_bind
+      syscall: false
+      args:
+        - index: 0
+          type: socket
+        - index: 1
+          type: sockaddr
+      selectors:
+        - matchArgs:
+            - index: 1
+              operator: SAddr
+              values: [10.10.0.0/24, 10.10.6.0/24]
+    - call: security_socket_connect
+      syscall: false
+      args:
+        - index: 0
+          type: socket
+        - index: 1
+          type: sockaddr
+      selectors:
+        - matchArgs:
+            - index: 1
+              operator: SAddr
+              values: [10.10.0.0/24, 10.10.6.0/24]

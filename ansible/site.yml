@@ -1042,6 +1042,45 @@
       changed_when: false
       tags: [ueransim, multus]
 
+    # ---------- Fase 6: Tetragon (cortar en el kernel) ----------
+    - name: "Fase 6: Tetragon"
+      when: deploy_tetragon | bool
+      tags: [tetragon]
+      block:
+        - name: "Repo Helm de Cilium (también publica Tetragon)"
+          ansible.builtin.command: "helm repo add cilium https://helm.cilium.io"
+          register: tg_repo
+          changed_when: "'has been added' in tg_repo.stdout"
+          failed_when: tg_repo.rc != 0 and 'already exists' not in tg_repo.stderr
+
+        - name: "Instalar/actualizar Tetragon (chart {{ tetragon_chart_version }})"
+          ansible.builtin.command: >
+            helm upgrade --install tetragon cilium/tetragon
+            --version {{ tetragon_chart_version }}
+            --namespace kube-system
+            --set tetragon.enablePolicyFilter=true
+            --wait --timeout 10m
+          changed_when: true
+
+        - name: "Esperar a las CRD de Tetragon"
+          ansible.builtin.command: "kubectl get crd tracingpolicies.cilium.io tracingpoliciesnamespaced.cilium.io"
+          register: tg_crd
+          retries: 20
+          delay: 6
+          until: tg_crd.rc == 0
+          changed_when: false
+
+        - name: "Copiar tetragon-policies al master"
+          ansible.builtin.copy:
+            src: "{{ repo_root }}/tetragon-policies/"
+            dest: "{{ work_dir }}/tetragon-policies/"
+            mode: "0644"
+
+        - name: "Aplicar las políticas de Tetragon"
+          ansible.builtin.command: "kubectl apply -k {{ work_dir }}/tetragon-policies/"
+          register: tg_policies
+          changed_when: "'configured' in tg_policies.stdout or 'created' in tg_policies.stdout"
+
     # ---------- Fase 3: políticas de Cilium para la red de pods ----------
     # Un overlay por modo (cilium-policies/lab/README.md). --prune borra las
     # CNP del lab que ya no estén en el overlay (p. ej. las de N2/N3/N6 al
@@ -1091,6 +1130,6 @@
           SBI {{ 'con mTLS' if (sbi_tls | bool) else 'en claro' }}.
           Pruebas: docs/pruebas-fase1.md (redes), docs/pruebas-fase2.md (admisión
           y MultiNetworkPolicy), docs/pruebas-fase3.md (Cilium),
-          docs/pruebas-fase4.md (mTLS). Smoke: make smoke. Matriz sin clúster:
-          make policy-matrix.
+          docs/pruebas-fase4.md (mTLS), docs/pruebas-fase6.md (Tetragon).
+          Smoke: make smoke. Matriz sin clúster: make policy-matrix.
       tags: [always]
