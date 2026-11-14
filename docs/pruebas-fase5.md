@@ -38,7 +38,7 @@ Y en `examples/out/`:
 
 | Fichero | Qué es |
 |---|---|
-| `cnp/spec2policy-sbi-{amf,ausf,bsf,nrf,nssf,pcf,scp,smf,udm,udr}.yaml` | Una CNP de ingress SBI por NF, con `rules.http` por método y path (regex) agrupadas por NF origen. Usan los mismos selectores que `cilium-policies/` (`app.kubernetes.io/name`, `cib46-nf-type: core-nf`, ns `5g-cp`, TCP 7777). |
+| `cnp/spec2policy-sbi-{amf,ausf,bsf,nrf,nssf,pcf,scp,smf,udm,udr}.yaml` | Una CNP de ingress SBI por NF, con `rules.http` por método y path (regex) agrupadas por NF origen. Usan los mismos selectores que `cilium-policies/` (`app.kubernetes.io/name`, `app.kubernetes.io/instance: open5gs-cp`, ns `5g-cp`, TCP 7777). |
 | `cnp/spec2policy-sbi-l7-visibility.yaml` | CNP que fuerza el proxy L7 en 7777 para poder capturar (ver §3). |
 | `blast-radius-map.md` | El informe que se lleva la audiencia. |
 | `blast-radius-map.csv` | Lo mismo, una fila por operación, para filtrar en hoja de cálculo. |
@@ -93,7 +93,7 @@ En 1.15 hay dos formas de conseguirlo:
   ```
 
 - **Anotación** (alternativa, deprecated):
-  `kubectl -n 5g-cp annotate pod -l cib46-nf-type=core-nf policy.cilium.io/proxy-visibility="<Ingress/7777/TCP/HTTP>"`.
+  `kubectl -n 5g-cp annotate pod -l app.kubernetes.io/instance=open5gs-cp policy.cilium.io/proxy-visibility="<Ingress/7777/TCP/HTTP>"`.
 
 Después, igual que hace `bootstrap/run-experiment.sh`:
 

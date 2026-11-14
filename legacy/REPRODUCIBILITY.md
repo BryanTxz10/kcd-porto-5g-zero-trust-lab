@@ -59,5 +59,5 @@ Ver `CITATION.cff` (GitHub lo muestra como "Cite this repository").
 - `docs/protocolo-experimental.md` — metodología correcta (qué medir y cómo).
 - `docs/guia-reproducibilidad.md` — guía operativa (camino bash).
 - `ansible/README-ansible.md` — despliegue con Ansible desde cero.
-- `docs/revision-metodologica.md` — auditoría de la v1 (RM-01…RM-28).
-- `docs/related-work-y-gaps.md` + `docs/referencias.bib` — estado del arte.
+- `legacy/docs/revision-metodologica.md` — auditoría de la v1 (RM-01…RM-28).
+- `legacy/docs/related-work-y-gaps.md` + `legacy/docs/referencias.bib` — estado del arte.

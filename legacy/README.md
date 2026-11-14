@@ -15,6 +15,10 @@ Está deliberadamente **fuera del alcance de los linters** del pipeline.
 | `analysis/` | Análisis estadístico (ómnibus Kruskal-Wallis, post-hoc de Dunn, tamaños de efecto). |
 | `transitions/` | Scripts `transition-to-c0..c3.sh`: transición imperativa entre las condiciones C0–C3 de la tesis. En el repo activo la transición es declarativa con `make condition C=cN`. |
 | `docs/protocolo-experimental.md` | Protocolo experimental (hipótesis, condiciones C0–C3, muestreo, análisis). |
+| `docs/revision-metodologica.md` | Revisión metodológica del testbed de la tesis (RM-01…RM-28). |
+| `docs/arquitectura-v2-hardening.md`, `docs/arquitectura-v3-planos.md` | Diseño de las versiones v2 y v3 del testbed (sustituido por `docs/arquitectura.md`). |
+| `docs/guia-reproducibilidad.md` | Guía del despliegue por bash con las condiciones C0–C3. |
+| `docs/paper-posicionamiento.md`, `docs/related-work-y-gaps.md`, `docs/referencias.bib` | Posicionamiento del artículo, estado del arte y bibliografía. |
 | `REPRODUCIBILITY.md` | Guía de reproducibilidad del artefacto para *artifact evaluation* y defensa de la tesis. |
 | `CITATION.cff` | Metadatos de cita del testbed como artefacto académico. |
 

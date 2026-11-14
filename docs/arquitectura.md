@@ -73,8 +73,24 @@ una decisión de **admisión** (Fase 2), no de red.
 |---|---|
 | Multus y ENI en varias VPC para separar tráfico de control y de usuario | Multus con ipvlan sobre NIC dedicadas `access` y `n6` |
 
-Fuentes: publicaciones técnicas de AWS y de los operadores sobre estos despliegues.
-Las referencias exactas están pendientes de añadir a `docs/referencias.bib`.
+Fuentes:
+
+- AWS for Industries, *Telco meets AWS cloud: deploying DISH's 5G network in AWS
+  cloud*:
+  <https://aws.amazon.com/blogs/industries/telco-meets-aws-cloud-deploying-dishs-5g-network-in-aws-cloud>.
+  Sitios en Local Zones para el plano de usuario, VPC por sitio interconectadas con
+  Transit Gateway y tablas de rutas que aíslan el tráfico entre funciones.
+- AWS re:Invent 2022, TLC306, *DISH's 5G wireless deployment on AWS: From Region to
+  edge*:
+  <https://d1.awsstatic.com/events/Summits/reinvent2022/TLC306_DISHs-5G-wireless-deployment-on-AWS-From-Region-to-edge.pdf>.
+- AWS for Industries, *O2 Telefónica moves its 5G core network to the cloud with AWS
+  and Nokia*:
+  <https://aws.amazon.com/blogs/industries/o2-telefonica-moves-its-5g-core-network-to-the-cloud-with-aws-and-nokia>.
+  ENI en varias VPC para separar tipos de tráfico y Multus en Amazon EKS para el
+  aislamiento entre redes.
+
+Son publicaciones de AWS de alto nivel: describen la arquitectura, no la
+configuración exacta de cada pod o subred.
 
 ### Diferencias que siguen y se declaran
 

@@ -8,7 +8,7 @@
 > Alcance de esta revisión: se realizó **únicamente sobre el contenido del
 > repositorio** (`cilium-policies/`, `attack-scripts/`, `monitoring/`,
 > `legacy/data-processing/`, `helm-values/`, `spire-config/`, `ueransim-config/`). No
-> se tuvo acceso a las bitácoras del proyecto de Claude Desktop ni a los datos
+> se tuvo acceso a las bitácoras del proyecto ni a los datos
 > crudos (`*.txt`, `*.csv`), que están excluidos por `.gitignore`. Donde una
 > observación dependa de datos que no están en el repo, se indica explícitamente
 > como *"a verificar contra bitácora"*.

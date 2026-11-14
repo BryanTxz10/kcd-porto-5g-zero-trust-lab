@@ -1,4 +1,4 @@
-# Makefile — automatización de extremo a extremo del testbed CIB46.
+# Makefile — automatización de extremo a extremo del lab.
 # Objetivo: recrear el entorno y ejecutar el experimento con comandos cortos.
 # Cada objetivo es idempotente (delega en los scripts de bootstrap/).
 
@@ -15,7 +15,7 @@ up: ## Despliega con bash (respaldo): k3s -> Cilium -> ... -> C0
 	bash bootstrap/bootstrap.sh
 
 .PHONY: up-no-spire
-up-no-spire: ## Igual que 'up' pero omite SPIRE (no afecta métricas C0-C3)
+up-no-spire: ## Igual que 'up' pero omite SPIRE
 	bash bootstrap/bootstrap.sh --skip-spire
 
 .PHONY: prereqs
@@ -70,7 +70,7 @@ lint: ## Chequeo de sintaxis de todos los scripts bash
 	          cilium-policies/c2/*.sh; do bash -n "$$f" && echo "ok  $$f"; done
 
 .PHONY: kustomize-check
-kustomize-check: ## Valida que los overlays Kustomize C0-C3 y las MultiNetworkPolicy construyan
+kustomize-check: ## Valida que construyan las políticas del lab, las MNP, Tetragon y las capas C0-C3 de la tesis
 	@for c in c0 c1 c2 c3; do \
 	  echo "== build $$c =="; \
 	  kustomize build --load-restrictor=LoadRestrictionsNone \

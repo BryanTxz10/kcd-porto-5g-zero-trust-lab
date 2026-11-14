@@ -1,6 +1,6 @@
 # Arquitectura v3: plano de control y plano de usuario separados
 
-> Continúa `docs/arquitectura-v2-hardening.md`. La v2 endureció el testbed sin
+> Continúa `legacy/docs/arquitectura-v2-hardening.md`. La v2 endureció el testbed sin
 > mover nada de sitio. La v3 hace el cambio que la v2 dejó diferido: el UPF sale
 > de `5g-cp` y pasa a su propia zona (`5g-up`), con su propio release de Helm,
 > su propio nodo y sus propias políticas. También corrige tres defectos de las
