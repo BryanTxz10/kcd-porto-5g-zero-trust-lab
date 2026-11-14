@@ -180,7 +180,24 @@ Saltarte SPIRE: pon `deploy_spire: false` en `group_vars/all.yml`.
 
 ---
 
-## 8. Aplicar las condiciones experimentales (C0–C3) con Kustomize
+## 8. Políticas de Cilium del lab (Fase 3)
+
+`site.yml` aplica al final las políticas de `cilium-policies/lab/` del modo
+elegido (`una-red` si `deploy_multus: false`, `multus` si `true`). Para
+reaplicarlas o cambiar de modo a mano, desde la raíz del repo en el master:
+
+```bash
+make policies                 # modo según group_vars/all.yml
+make policies MODE=una-red    # o MODE=multus
+make policy-matrix            # matriz de flujos en los dos modos, sin clúster
+```
+
+Detalle y pruebas: `docs/pruebas-fase3.md`.
+
+### 8.1 Condiciones de la tesis (C0–C3), solo como referencia
+
+`make condition` borra **todas** las CNP con `cib46.io/managed=true`, incluidas
+las del lab. Para volver a las del lab: `make policies`.
 
 Las condiciones son conjuntos declarativos de políticas. Necesitas `kustomize`
 (o `kubectl` reciente, que lo trae). Desde la **raíz del repo, en el master**

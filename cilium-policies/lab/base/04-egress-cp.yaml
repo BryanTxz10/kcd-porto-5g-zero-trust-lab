@@ -1,0 +1,21 @@
+# Egress del plano de control: solo dentro de 5g-cp y al DNS del clúster.
+# Sin world: ninguna NF del core sale a internet ni llama al API server.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: egress-cp
+  namespace: 5g-cp
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - { port: "53", protocol: UDP }
+            - { port: "53", protocol: TCP }

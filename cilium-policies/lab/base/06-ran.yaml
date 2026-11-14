@@ -1,0 +1,26 @@
+# 5g-ran: la radio simulada (RLS, UDP 4997) entre UE y gNB queda dentro del
+# namespace, más el DNS. Nada más: el gNB y el UE no llegan a la SBI ni al API
+# server. N2 y N3 los añade el overlay del modo (una-red/) o van por Multus.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ran-intra
+  namespace: 5g-ran
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-ran
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-ran
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - { port: "53", protocol: UDP }
+            - { port: "53", protocol: TCP }

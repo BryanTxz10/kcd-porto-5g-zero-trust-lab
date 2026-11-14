@@ -113,11 +113,20 @@ deploy_spire: true
 spire_trust_domain: "cib46.5gcore.local"   # el mismo trust domain de la tesis
 spire_version: "1.8.5"                     # informativo: lo fija el chart de Cilium 1.15.4
 
-# --- Hardening Perfil A (arquitectura v2) ---
-# Cifrado transparente WireGuard entre nodos (hallazgo 6). APAGADO por defecto:
-# es una CONDICIÓN APARTE que vuelve a medir la latencia. Actívalo con true o,
-# en la ruta bash, con DEPLOY_ENCRYPTION=1 (bootstrap/20-cilium.sh).
+# --- Cifrado entre nodos (Fase 3) ---
+# WireGuard de Cilium entre nodos: protege la SBI y N4 cuando cruzan del sitio
+# central (worker1) al de borde (worker2), en línea con TS 33.501 §9.9
+# (interfaces internas no SBA). Apagado por defecto para no tocar el plan B
+# hasta que el resto funcione; actívalo con true y relanza --tags cilium.
+# Comprobar que las reglas L7 del NRF siguen funcionando con WireGuard en
+# 1.15: docs/pruebas-fase3.md §3.
 node_encryption: false
+
+# --- Políticas de Cilium del lab (Fase 3) ---
+# Al final del despliegue se aplica cilium-policies/lab/<modo>, con
+# modo = multus si deploy_multus es true y una-red si es false. false deja el
+# clúster sin políticas (útil para depurar el core).
+apply_cilium_policies: true
 
 # --- RAN simulada ---
 ueransim_version: "v3.2.6"

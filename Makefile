@@ -37,8 +37,18 @@ condition: ## Aplica una capa de política con Kustomize (uso: make condition C=
 smoke: ## Prueba de humo del plano de control (uso: make smoke C=C1)
 	bash bootstrap/checks/smoke-control-plane.sh $(C)
 
+# Modo de las políticas del lab: el de ansible/group_vars/all.yml salvo que
+# se pase MODE=una-red|multus.
+MODE ?= $(shell grep -qE '^deploy_multus:[[:space:]]*true' ansible/group_vars/all.yml && echo multus || echo una-red)
+
+.PHONY: policies
+policies: ## Aplica las políticas de Cilium del lab (MODE=una-red|multus; por defecto, según deploy_multus)
+	kubectl apply -k cilium-policies/lab/$(MODE) --prune -l kcd.io/policy-set=lab \
+	  --prune-allowlist=cilium.io/v2/CiliumNetworkPolicy
+	kubectl get cnp -A -l kcd.io/policy-set=lab
+
 .PHONY: policy-matrix
-policy-matrix: ## Matriz de flujos por condición, sin clúster (aproximación L3/L4)
+policy-matrix: ## Matriz de flujos en los dos modos (una-red y multus), sin clúster (aproximación L3/L4)
 	python3 bootstrap/checks/policy-matrix.py .
 
 # Nota: el análisis estadístico de la tesis (ómnibus/post-hoc, tamaños de efecto)
@@ -58,8 +68,10 @@ kustomize-check: ## Valida que los overlays Kustomize C0-C3 y las MultiNetworkPo
 	  kustomize build --load-restrictor=LoadRestrictionsNone \
 	    cilium-policies/conditions/$$c >/dev/null && echo "ok  $$c"; \
 	done
-	@echo "== build multinetwork-policies =="; \
-	  kustomize build multinetwork-policies >/dev/null && echo "ok  multinetwork-policies"
+	@for d in cilium-policies/lab/una-red cilium-policies/lab/multus multinetwork-policies; do \
+	  echo "== build $$d =="; \
+	  kustomize build $$d >/dev/null && echo "ok  $$d"; \
+	done
 
 .PHONY: ci
 ci: ## Replica local del pipeline CI (lint bash + yaml + kustomize + python)

@@ -967,10 +967,53 @@
       changed_when: false
       tags: [ueransim, multus]
 
+    # ---------- Fase 3: políticas de Cilium para la red de pods ----------
+    # Un overlay por modo (cilium-policies/lab/README.md). --prune borra las
+    # CNP del lab que ya no estén en el overlay (p. ej. las de N2/N3/N6 al
+    # pasar del plan B a Multus) y nada más.
+    - name: "Fase 3: políticas de Cilium del lab"
+      when: apply_cilium_policies | bool
+      tags: [policies]
+      vars:
+        policy_mode: "{{ 'multus' if (deploy_multus | bool) else 'una-red' }}"
+      block:
+        - name: "Copiar cilium-policies/lab al master"
+          ansible.builtin.copy:
+            src: "{{ repo_root }}/cilium-policies/lab/"
+            dest: "{{ work_dir }}/cilium-policies-lab/"
+            mode: "0644"
+
+        - name: "Aplicar el overlay {{ policy_mode }}"
+          ansible.builtin.command: >
+            kubectl apply -k {{ work_dir }}/cilium-policies-lab/{{ policy_mode }}
+            --prune -l kcd.io/policy-set=lab
+            --prune-allowlist=cilium.io/v2/CiliumNetworkPolicy
+          register: lab_policies
+          changed_when: "'configured' in lab_policies.stdout or 'created' in lab_policies.stdout or 'pruned' in lab_policies.stdout"
+
+        - name: "Todas las CNP del lab válidas"
+          ansible.builtin.command: >
+            kubectl get cnp -A -l kcd.io/policy-set=lab
+            -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}={.status.conditions[0].status}{"\n"}{end}'
+          register: lab_cnp_status
+          retries: 10
+          delay: 3
+          until: lab_cnp_status.stdout is not search('=False')
+          changed_when: false
+
+    - name: "Fase 3: WireGuard activo en los agentes de Cilium"
+      ansible.builtin.command: "kubectl -n kube-system exec ds/cilium -c cilium-agent -- cilium-dbg encrypt status"
+      register: wg_status
+      when: node_encryption | default(false) | bool
+      changed_when: false
+      failed_when: wg_status.rc != 0 or 'Wireguard' not in wg_status.stdout
+      tags: [cilium, policies]
+
     - name: "Mensaje final"
       ansible.builtin.debug:
         msg: >
-          Testbed desplegado. Sigue la sección de verificación de
-          docs/guia-lab-desde-cero.md (logs del gNB/UE, uesimtun0) y aplica C0
-          con 'make condition C=c0' + 'make smoke C=C0'.
+          Testbed desplegado en modo {{ 'redes dedicadas (Multus)' if (deploy_multus | bool) else 'plan B (una red)' }}.
+          Pruebas: docs/pruebas-fase1.md (redes), docs/pruebas-fase2.md (admisión
+          y MultiNetworkPolicy), docs/pruebas-fase3.md (Cilium). Matriz sin
+          clúster: make policy-matrix.
       tags: [always]

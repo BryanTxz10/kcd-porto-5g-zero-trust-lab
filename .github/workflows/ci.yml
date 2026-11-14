@@ -101,12 +101,14 @@ jobs:
               echo "FAIL $c"; rc=1
             fi
           done
-          echo "== build multinetwork-policies =="
-          if kustomize build multinetwork-policies >/dev/null; then
-            echo "ok   multinetwork-policies"
-          else
-            echo "FAIL multinetwork-policies"; rc=1
-          fi
+          for d in cilium-policies/lab/una-red cilium-policies/lab/multus multinetwork-policies; do
+            echo "== build $d =="
+            if kustomize build "$d" >/dev/null; then
+              echo "ok   $d"
+            else
+              echo "FAIL $d"; rc=1
+            fi
+          done
           exit $rc
 
   lint-python:
@@ -122,6 +124,10 @@ jobs:
           python-version: "3.12"
       - name: Compilar todos los scripts (BLOQUEA)
         run: python -m compileall -q attack-scripts bootstrap
+      - name: Matriz de políticas en los dos modos (BLOQUEA)
+        run: |
+          pip install pyyaml==6.0.2
+          python bootstrap/checks/policy-matrix.py .
       - name: ruff (lint de errores, no bloquea)
         run: |
           pip install ruff

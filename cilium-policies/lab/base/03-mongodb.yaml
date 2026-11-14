@@ -1,0 +1,24 @@
+# MongoDB (suscriptores) solo desde UDR, PCF y el job de populate.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: mongodb
+  namespace: 5g-cp
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: mongodb
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/name: udr
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/name: pcf
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/component: populate
+      toPorts:
+        - ports:
+            - { port: "27017", protocol: TCP }
