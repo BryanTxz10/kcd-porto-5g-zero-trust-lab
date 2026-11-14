@@ -1,0 +1,406 @@
+# Generado por tools/spec2policy (modo standard). NO EDITAR A MANO.
+# Ingress SBI (TCP 7777) de la NF 'udr' en 5g-cp, derivado de:
+#   - tabla productor/consumidor: data/services.yaml
+#   - OpenAPI 3GPP Rel-17 (extractos, mirror fijado por commit):
+#       jdegre/5GC_APIs@06137ac51e2c:TS29504_Nudr_DR.yaml
+# SCP: en Open5GS las peticiones llegan al productor desde el SCP (comunicación
+# indirecta, TS 23.501 Anexo E). Por eso casi todo el ingress viene de 'scp'.
+# Estado: NO verificado en clúster (ver docs/pruebas-fase5.md).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: spec2policy-sbi-udr
+  namespace: 5g-cp
+  labels:
+    app.kubernetes.io/part-of: spec2policy
+    cib46.io/managed: 'true'
+  annotations:
+    description: 'spec-as-policy (standard): ingress SBI de udr con reglas HTTP por método y path derivadas
+      de los OpenAPI 3GPP de nudr-dr.'
+    spec2policy.cib46.io/mode: standard
+    spec2policy.cib46.io/services: nudr-dr
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: udr
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            cib46-nf-type: core-nf
+            app.kubernetes.io/name: nrf
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: POST
+                path: /nnrf-nfm/v1/nf-status-notify(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            cib46-nf-type: core-nf
+            app.kubernetes.io/name: scp
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: DELETE
+                path: /nudr-dr/v2/policy-data/bdt-data/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/policy-data/subs-to-notify/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/policy-data/ues/[^/?]+/operator-specific-data(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/policy-data/ues/[^/?]+/sm-data/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/authentication-data/authentication-status(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/authentication-data/authentication-status/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+/amf-subscriptions(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+/hss-subscriptions(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+/smf-subscriptions(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ip-sm-gw(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/mwd(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/nidd-authorizations(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/sdm-subscriptions/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/sdm-subscriptions/[^/?]+/hss-sdm-subscriptions(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/service-specific-authorizations/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/smf-registrations/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/smsf-3gpp-access(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/smsf-non-3gpp-access(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/[^/?]+/operator-specific-data(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/group-data/5g-vn-groups/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+/amf-subscriptions(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+/hss-subscriptions(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+/smf-subscriptions(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/group-data/mbs-group-membership/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/subs-to-notify(\?.*)?
+              - method: DELETE
+                path: /nudr-dr/v2/subscription-data/subs-to-notify/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/policy-data/bdt-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/policy-data/bdt-data/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/policy-data/plmns/[^/?]+/ue-policy-set(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/policy-data/sponsor-connectivity-data/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/policy-data/ues/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/policy-data/ues/[^/?]+/am-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/policy-data/ues/[^/?]+/operator-specific-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/policy-data/ues/[^/?]+/sm-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/policy-data/ues/[^/?]+/sm-data/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/policy-data/ues/[^/?]+/ue-policy-set(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/5mbs-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/[^/?]+/provisioned-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/[^/?]+/provisioned-data/am-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/[^/?]+/provisioned-data/lcs-bca-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/[^/?]+/provisioned-data/sm-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/[^/?]+/provisioned-data/smf-selection-subscription-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/[^/?]+/provisioned-data/sms-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/[^/?]+/provisioned-data/sms-mng-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/[^/?]+/provisioned-data/trace-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/authentication-data/authentication-status(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/authentication-data/authentication-status/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/authentication-data/authentication-subscription(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/amf-3gpp-access(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/amf-non-3gpp-access(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+/amf-subscriptions(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+/hss-subscriptions(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+/smf-subscriptions(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ip-sm-gw(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/location(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/mwd(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/nidd-authorizations(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/pei-info(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/roaming-information(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/sdm-subscriptions(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/sdm-subscriptions/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/sdm-subscriptions/[^/?]+/hss-sdm-subscriptions(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/service-specific-authorizations/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/smf-registrations(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/smf-registrations/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/smsf-3gpp-access(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/smsf-non-3gpp-access(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/coverage-restriction-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/ee-profile-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/identity-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/lcs-mo-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/lcs-privacy-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/nidd-authorization-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/operator-determined-barring-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/operator-specific-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/pp-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/pp-data-store(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/pp-profile-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/prose-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/service-specific-authorization-data/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/uc-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/ue-update-confirmation-data/sor-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/ue-update-confirmation-data/subscribed-cag(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/ue-update-confirmation-data/subscribed-snssais(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/ue-update-confirmation-data/upu-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/[^/?]+/v2x-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/group-data/5g-vn-groups(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/group-data/5g-vn-groups/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/group-data/5g-vn-groups/internal(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/group-data/5g-vn-groups/pp-profile-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-profile-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+/amf-subscriptions(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+/hss-subscriptions(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+/smf-subscriptions(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/group-data/group-identifiers(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/group-data/mbs-group-membership(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/group-data/mbs-group-membership/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/group-data/mbs-group-membership/internal(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/group-data/mbs-group-membership/pp-profile-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/shared-data(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/shared-data/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/subs-to-notify(\?.*)?
+              - method: GET
+                path: /nudr-dr/v2/subscription-data/subs-to-notify/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/policy-data/bdt-data/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/policy-data/ues/[^/?]+/operator-specific-data(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/policy-data/ues/[^/?]+/sm-data(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/policy-data/ues/[^/?]+/ue-policy-set(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/authentication-data/authentication-subscription(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/amf-3gpp-access(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/amf-non-3gpp-access(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+/amf-subscriptions(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+/hss-subscriptions(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+/smf-subscriptions(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ip-sm-gw(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/mwd(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/nidd-authorizations(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/sdm-subscriptions/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/sdm-subscriptions/[^/?]+/hss-sdm-subscriptions(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/service-specific-authorizations/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/smf-registrations/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/operator-specific-data(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/pp-data(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/[^/?]+/ue-update-confirmation-data/sor-data(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/group-data/5g-vn-groups/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+/amf-subscriptions(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+/hss-subscriptions(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+/smf-subscriptions(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/group-data/mbs-group-membership/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nudr-dr/v2/subscription-data/subs-to-notify/[^/?]+(\?.*)?
+              - method: POST
+                path: /nudr-dr/v2/policy-data/subs-to-notify(\?.*)?
+              - method: POST
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions(\?.*)?
+              - method: POST
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/sdm-subscriptions(\?.*)?
+              - method: POST
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions(\?.*)?
+              - method: POST
+                path: /nudr-dr/v2/subscription-data/subs-to-notify(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/policy-data/bdt-data/[^/?]+(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/policy-data/subs-to-notify/[^/?]+(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/policy-data/ues/[^/?]+/operator-specific-data(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/policy-data/ues/[^/?]+/sm-data/[^/?]+(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/policy-data/ues/[^/?]+/ue-policy-set(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/authentication-data/authentication-status(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/authentication-data/authentication-status/[^/?]+(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/amf-3gpp-access(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/amf-non-3gpp-access(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+/amf-subscriptions(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+/hss-subscriptions(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ee-subscriptions/[^/?]+/smf-subscriptions(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/ip-sm-gw(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/mwd(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/nidd-authorizations(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/pei-info(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/roaming-information(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/sdm-subscriptions/[^/?]+(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/sdm-subscriptions/[^/?]+/hss-sdm-subscriptions(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/service-specific-authorizations/[^/?]+(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/smf-registrations/[^/?]+(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/smsf-3gpp-access(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/context-data/smsf-non-3gpp-access(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/operator-specific-data(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/ue-update-confirmation-data/sor-data(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/ue-update-confirmation-data/subscribed-cag(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/ue-update-confirmation-data/subscribed-snssais(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/[^/?]+/ue-update-confirmation-data/upu-data(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/group-data/5g-vn-groups/[^/?]+(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+/amf-subscriptions(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+/hss-subscriptions(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/group-data/[^/?]+/ee-subscriptions/[^/?]+/smf-subscriptions(\?.*)?
+              - method: PUT
+                path: /nudr-dr/v2/subscription-data/group-data/mbs-group-membership/[^/?]+(\?.*)?

@@ -1,0 +1,300 @@
+# Generado por tools/spec2policy (modo standard). NO EDITAR A MANO.
+# Ingress SBI (TCP 7777) de la NF 'nrf' en 5g-cp, derivado de:
+#   - tabla productor/consumidor: data/services.yaml
+#   - OpenAPI 3GPP Rel-17 (extractos, mirror fijado por commit):
+#       jdegre/5GC_APIs@06137ac51e2c:TS29510_Nnrf_NFDiscovery.yaml
+#       jdegre/5GC_APIs@06137ac51e2c:TS29510_Nnrf_NFManagement.yaml
+# SCP: en Open5GS las peticiones llegan al productor desde el SCP (comunicación
+# indirecta, TS 23.501 Anexo E). Por eso casi todo el ingress viene de 'scp'.
+# Estado: NO verificado en clúster (ver docs/pruebas-fase5.md).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: spec2policy-sbi-nrf
+  namespace: 5g-cp
+  labels:
+    app.kubernetes.io/part-of: spec2policy
+    cib46.io/managed: 'true'
+  annotations:
+    description: 'spec-as-policy (standard): ingress SBI de nrf con reglas HTTP por método y path derivadas
+      de los OpenAPI 3GPP de nnrf-disc, nnrf-nfm.'
+    spec2policy.cib46.io/mode: standard
+    spec2policy.cib46.io/services: nnrf-disc,nnrf-nfm
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: nrf
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            cib46-nf-type: core-nf
+            app.kubernetes.io/name: amf
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: DELETE
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: OPTIONS
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: POST
+                path: /nnrf-nfm/v1/subscriptions(\?.*)?
+              - method: PUT
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            cib46-nf-type: core-nf
+            app.kubernetes.io/name: ausf
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: DELETE
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: OPTIONS
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: POST
+                path: /nnrf-nfm/v1/subscriptions(\?.*)?
+              - method: PUT
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            cib46-nf-type: core-nf
+            app.kubernetes.io/name: bsf
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: DELETE
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: OPTIONS
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: POST
+                path: /nnrf-nfm/v1/subscriptions(\?.*)?
+              - method: PUT
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            cib46-nf-type: core-nf
+            app.kubernetes.io/name: nssf
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: DELETE
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: OPTIONS
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: POST
+                path: /nnrf-nfm/v1/subscriptions(\?.*)?
+              - method: PUT
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            cib46-nf-type: core-nf
+            app.kubernetes.io/name: pcf
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: DELETE
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: OPTIONS
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: POST
+                path: /nnrf-nfm/v1/subscriptions(\?.*)?
+              - method: PUT
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            cib46-nf-type: core-nf
+            app.kubernetes.io/name: scp
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: DELETE
+                path: /nnrf-disc/v1/scp-domain-routing-info-subs/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: GET
+                path: /nnrf-disc/v1/nf-instances(\?.*)?
+              - method: GET
+                path: /nnrf-disc/v1/scp-domain-routing-info(\?.*)?
+              - method: GET
+                path: /nnrf-disc/v1/searches/[^/?]+(\?.*)?
+              - method: GET
+                path: /nnrf-disc/v1/searches/[^/?]+/complete(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: OPTIONS
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: POST
+                path: /nnrf-disc/v1/scp-domain-routing-info-subs(\?.*)?
+              - method: POST
+                path: /nnrf-nfm/v1/subscriptions(\?.*)?
+              - method: PUT
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            cib46-nf-type: core-nf
+            app.kubernetes.io/name: smf
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: DELETE
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: OPTIONS
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: POST
+                path: /nnrf-nfm/v1/subscriptions(\?.*)?
+              - method: PUT
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            cib46-nf-type: core-nf
+            app.kubernetes.io/name: udm
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: DELETE
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: OPTIONS
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: POST
+                path: /nnrf-nfm/v1/subscriptions(\?.*)?
+              - method: PUT
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            cib46-nf-type: core-nf
+            app.kubernetes.io/name: udr
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: DELETE
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: GET
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: OPTIONS
+                path: /nnrf-nfm/v1/nf-instances(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nnrf-nfm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: POST
+                path: /nnrf-nfm/v1/subscriptions(\?.*)?
+              - method: PUT
+                path: /nnrf-nfm/v1/nf-instances/[^/?]+(\?.*)?
