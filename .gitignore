@@ -23,3 +23,7 @@ kubeconfig
 # Archivos temporales del sistema
 .DS_Store
 *.swp
+
+# Fase 5: el blast radius map de ejemplo y la plantilla sí van al repo
+!tools/spec2policy/**/*.csv
+!docs/**/*.csv

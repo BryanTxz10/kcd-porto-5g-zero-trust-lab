@@ -94,4 +94,5 @@ jobs:
       - name: kube-linter (manifiestos y políticas, informativo)
         run: |
           kube-linter lint bootstrap/manifests attack-scripts \
-            cilium-policies --fail-if-no-objects-found=false || true
+            cilium-policies tools/spec2policy/examples/out/cnp \
+            --fail-if-no-objects-found=false || true
