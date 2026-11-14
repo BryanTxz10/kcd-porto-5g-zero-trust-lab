@@ -1,0 +1,12 @@
+# node-worker2 — sitio de borde: UPF, gNB, UE y atacantes.
+# NIC: mgmt (VMnet8, con IP = ansible_host), access (LAN segment ACCESS) y
+# n6 (LAN segment N6).
+# Guía: docs/guia-vms-realista.md
+---
+# Interfaces renombradas por MAC en netplan (match.macaddress + set-name).
+# Ninguna de las dos lleva IP: son el padre de las ipvlan L2 de Multus.
+#   access -> gNB (N2 y N3, 10.10.0.20) y UPF lado N3 (10.10.0.30)
+#   n6     -> UPF lado N6 (10.10.6.30)
+# Las IP están en group_vars/all.yml.
+access_iface: "access"
+n6_iface: "n6"

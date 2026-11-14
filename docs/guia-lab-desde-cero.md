@@ -11,6 +11,13 @@
 >
 > Rama del repo: **`lab-v2`**. Tiempo total aproximado: 2 a 3 horas la primera
 > vez (la mayor parte es esperar instalaciones y descargas).
+>
+> **⚠️ Nota (KCD Porto, Fase 0):** esta guía es la del **lab v2** (3 VMs, una
+> sola red, usuario `cib46`, repo `cib46-zta-5g-core`, rama `lab-v2`). Para
+> el lab de la charla (**4 VMs**, redes mgmt/access/n6, usuario
+> **`bryantxz10`**, este repo y rama `main`) sigue
+> **`docs/guia-vms-realista.md`** para las VMs y el SO. Las secciones de
+> Ansible y verificación de aquí se reescribirán en la fase de documentación.
 
 ---
 
@@ -490,6 +497,11 @@ for h in 192.168.100.10 192.168.100.11 192.168.100.12; do ssh cib46@$h hostname;
 ```
 
 ### 8.3 Bajar el repo
+
+> Para el lab de KCD Porto el repo es
+> `https://github.com/BryanTxz10/kcd-porto-5g-zero-trust-lab.git` (rama
+> `main`) y el inventario ya viene con el usuario `bryantxz10` y el grupo
+> `[dn]`; ver `docs/guia-vms-realista.md` §12. Lo de abajo es el lab v2.
 
 ```bash
 cd ~

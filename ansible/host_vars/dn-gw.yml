@@ -1,0 +1,20 @@
+# dn-gw — red de datos: router N6 con CGNAT hacia internet. NO es nodo de k3s.
+# NIC: mgmt (VMnet8, con IP = ansible_host) y n6 (LAN segment N6).
+# Guía: docs/guia-vms-realista.md
+#
+# Fase 0: netplan a mano (n6 con 10.10.6.1/24). Fase 1: un rol de Ansible
+# usará estas variables para ip_forward, la ruta hacia el pool de UE y el
+# MASQUERADE de salida por mgmt. Ese rol aún no existe.
+---
+# NIC renombrada por MAC en netplan (match.macaddress + set-name).
+n6_iface: "n6"
+n6_ip: "{{ dn_gw_n6_ip }}/24"          # 10.10.6.1/24 (group_vars/all.yml)
+
+# NIC de salida a internet (la de VMnet8). Es la que dejó el instalador de
+# Ubuntu; compruébala con 'ip -br a' y cámbiala si no se llama ens33.
+mgmt_iface: "ens33"
+
+# Ruta estática: el pool de los UE se alcanza a través del UPF (lado N6).
+ue_pool_route:
+  to: "{{ ue_pool_cidr }}"             # 10.45.0.0/16
+  via: "{{ upf_n6_ip }}"               # 10.10.6.30
