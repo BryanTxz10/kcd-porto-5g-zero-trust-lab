@@ -31,7 +31,9 @@ de un núcleo 5G SA open source desplegado sobre Kubernetes.
    especificación 3GPP de la SBI, para autorizar por identidad y contrato de API en
    lugar de por inspección de paquetes.
 5. **Respuesta 2 — cortar en el kernel.** **Tetragon** observa y corta en el punto de
-   ejecución (eBPF/kernel), por debajo del cifrado de la capa de transporte.
+   ejecución (eBPF/kernel), por debajo del cifrado de la capa de transporte: una
+   shell dentro del AMF muere antes de ejecutarse (`make demo-tetragon`). Pruebas:
+   [`docs/pruebas-fase6.md`](docs/pruebas-fase6.md).
 
 > **Estado de verificación.** El material de este repo (manifiestos, políticas,
 > scripts) **no se ha validado end-to-end en clúster dentro de este repositorio**.
@@ -60,6 +62,7 @@ de un núcleo 5G SA open source desplegado sobre Kubernetes.
 ├── bootstrap/           # Despliegue con bash (respaldo) y checks del plano de control
 ├── cilium-policies/     # CiliumNetworkPolicy por capa + overlays Kustomize (conditions/)
 ├── multinetwork-policies/ # MultiNetworkPolicy de las redes dedicadas access y n6 (Fase 2)
+├── tetragon-policies/   # TracingPolicy de Tetragon: shell en el AMF, sockets en access/n6 (Fase 6)
 ├── helm-values/         # values.yaml del chart Open5GS (Gradiant)
 ├── attack-scripts/      # Scripts de los vectores de ataque (movimiento lateral, spoofing, flood)
 ├── spire-config/        # SPIRE autónomo de la v1 (legado; en lab v2 SPIRE lo instala Cilium)

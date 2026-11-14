@@ -1,0 +1,63 @@
+# amf-sin-shell — Fase 6: cortar en el kernel el compromiso del AMF.
+#
+# Si alguien ejecuta una shell o una herramienta de red dentro del contenedor
+# del AMF (kubectl exec, o el propio proceso del AMF comprometido haciendo
+# fork+exec), Tetragon mata el proceso en el kernel, en el hook LSM
+# security_bprm_check, ANTES de que el binario llegue a ejecutarse y antes
+# de que salga un solo paquete. No depende de ver el tráfico: funciona igual
+# con la SBI cifrada con mTLS.
+#
+# Trampa (consigna): el entrypoint del chart de Gradiant es un script bash.
+# Se acota por PID: el arranque del contenedor corre como PID 1 de su
+# namespace de PID (runc init -> bash del entrypoint -> exec del AMF), así que
+# lo que haga el PID 1 se deja pasar. Una shell de 'kubectl exec' o un hijo
+# del AMF nunca son el PID 1: esos se matan.
+# ⚠ Supuesto sin verificar: que el entrypoint hace 'exec' del binario del AMF
+#   y no lanza shells hijas (docs/pruebas-fase6.md §4). Por eso el smoke de
+#   la SBI ya no hace curl dentro del AMF: sale de sbi-probe (Fase 4).
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicyNamespaced
+metadata:
+  name: amf-sin-shell
+  namespace: 5g-cp
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: amf
+  kprobes:
+    - call: security_bprm_check
+      syscall: false
+      args:
+        - index: 0
+          type: linux_binprm
+      selectors:
+        - matchPIDs:
+            - operator: NotIn
+              followForks: false
+              isNamespacePID: true
+              values: [1]
+          matchArgs:
+            - index: 0
+              operator: Postfix
+              values:
+                # shells
+                - /sh
+                - /bash
+                - /dash
+                - /ash
+                - /zsh
+                - /busybox
+                # herramientas de red y de scripting
+                - /curl
+                - /wget
+                - /nc
+                - /ncat
+                - /netcat
+                - /socat
+                - /nmap
+                - /telnet
+                - /ssh
+                - /python3
+                - /perl
+          matchActions:
+            - action: Sigkill

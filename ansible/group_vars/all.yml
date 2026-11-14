@@ -109,6 +109,16 @@ open5gs_db_uri: "mongodb://{{ open5gs_release }}-mongodb.{{ ns_cp }}.svc.cluster
 # Servidores DNS que el SMF entrega a los UE.
 ue_dns: ["8.8.8.8", "8.8.4.4"]
 
+# --- Tetragon (Fase 6) ---
+# Observa y corta en el kernel (eBPF): mata una shell o una herramienta de red
+# dentro del AMF antes de que se ejecute, y registra qué proceso abre sockets
+# en las redes access y n6 (tetragon-policies/). Funciona aunque la SBI vaya
+# cifrada. Es independiente de la versión de Cilium (se instala con su propio
+# chart del repo de Cilium); 1.1.x soporta TracingPolicyNamespaced.
+# ⚠ VERIFICAR que la versión del chart existe: el playbook falla si no.
+deploy_tetragon: true
+tetragon_chart_version: "1.1.2"
+
 # --- Núcleo 5G (chart Helm de Gradiant, Open5GS 2.7.5) ---
 # El repo towards5gs-helm NO publica un chart de Open5GS (solo free5GC y
 # UERANSIM); los values del repo corresponden al chart de Gradiant.
