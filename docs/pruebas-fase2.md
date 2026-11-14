@@ -26,14 +26,13 @@ admisión, no de red.**
 | Pieza | Versión / fichero | Tag |
 |---|---|---|
 | Kyverno | chart 3.1.4 (Kyverno 1.11.4, K8s 1.25–1.28) | `admission` |
-| ClusterPolicy `kcd-multus-network-guard` | `bootstrap/admission/kyverno-identity-guard.yaml` (2.º documento) | `admission` |
+| ClusterPolicy `kcd-multus-network-guard` | `k8s/admission/kyverno-redes-dedicadas.yaml` | `admission` |
 | multi-networkpolicy-iptables | `multi_networkpolicy_version` (⚠ tag por verificar), con `--network-plugins=ipvlan` y el socket de containerd de k3s | `mnp` |
-| MultiNetworkPolicy | `multinetwork-policies/` | `mnp` |
+| MultiNetworkPolicy | `k8s/multinetwork/` | `mnp` |
 
-El playbook aplica **solo** el documento de redes dedicadas. El otro ClusterPolicy
-del fichero (`cib46-identity-guard`, de la tesis) sigue siendo manual porque su
-allowlist hay que ajustarla al clúster. Antes de aplicar, el playbook comprueba que
-las IP de la política coinciden con `group_vars/all.yml`.
+El playbook aplica esta política. La de identidad de NF
+(`k8s/admission/kyverno-identidad-nf.yaml`) se aplica a mano. Antes de aplicar, el
+playbook comprueba que las IP de la política coinciden con `group_vars/all.yml`.
 
 Si la política bloquea algo legítimo la primera vez, pon
 `kyverno_multus_guard_action: Audit`, relanza con `--tags admission` y mira
@@ -86,7 +85,7 @@ alcanzan redes privadas (Fase 1).
 kubectl get clusterpolicy kcd-multus-network-guard          # READY True
 
 # Un atacante pide la red de la radio
-kubectl apply -f attack-scripts/deploy-attacker-access.yaml
+kubectl apply -f attacks/attacker-access.yaml
 # Debe verse, para los dos pods, algo como:
 #   Error from server: admission webhook "validate.kyverno.svc-fail" denied the request:
 #   policy Pod/5g-ran/attacker-access for resource violation:
@@ -129,8 +128,7 @@ kubectl -n 5g-ran exec deploy/ueransim-ues -- ping -c3 -I uesimtun0 8.8.8.8
 - **Un gNB comprometido sí pasa.** La MultiNetworkPolicy permite el origen
   10.10.0.20 hacia el AMF, así que un gNB comprometido puede abrir tantas
   asociaciones NGAP como quiera. **La política decide quién, no cuánto.** El
-  escenario A3 desde el gNB se ejecuta con el script existente
-  (`attack-scripts/run_a3_n2_flood.sh`), adaptado al pod del gNB.
+  escenario A3 desde el gNB: `AMF_IP=10.10.0.10 ORIGEN=gnb bash attacks/a3-flood-n2.sh`.
 - **Un UE contra el core.** Desde `uesimtun0`, cualquier intento hacia la SBI o la red
   del clúster sale por N6 y muere en dn-gw: no toca la red de pods.
 

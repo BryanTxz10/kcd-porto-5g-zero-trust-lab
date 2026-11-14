@@ -93,6 +93,6 @@ jobs:
           kube-linter version
       - name: kube-linter (manifiestos y políticas, informativo)
         run: |
-          kube-linter lint bootstrap/manifests attack-scripts \
-            cilium-policies tools/spec2policy/examples/out/cnp \
+          kube-linter lint k8s/manifests attacks \
+            k8s/cilium tools/spec2policy/examples/out/cnp \
             --fail-if-no-objects-found=false || true

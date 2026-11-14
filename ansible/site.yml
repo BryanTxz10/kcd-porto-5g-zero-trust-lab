@@ -1,43 +1,41 @@
-# site.yml — Despliegue completo del testbed CIB46 con Ansible (lab v2).
+# site.yml — Despliegue completo del lab con Ansible.
 #
 # Describe el estado deseado del clúster y lo consigue de forma idempotente
 # (puedes re-ejecutarlo sin romper nada).
 #
 # Uso (desde la carpeta ansible/):
-#   ansible-playbook site.yml -K              # todo (-K pide la clave de sudo)
+#   ansible-playbook site.yml -K                 # todo (-K pide la clave de sudo)
 #   ansible-playbook site.yml -K --tags cilium   # solo una parte
 #
 # Guía paso a paso desde VMs vacías: docs/guia-lab-desde-cero.md
 #
-# Cambios lab v2 (resumen; detalle en la guía):
-#   - k3s con --node-ip explícito (evita que tome otra NIC).
-#   - Cilium con pool de pods 10.42.0.0/16 y CLIs cilium/hubble en el master.
-#   - Open5GS desde el chart OCI de Gradiant (towards5gs no tiene chart de
-#     Open5GS) en DOS releases: "open5gs-up" (UPF, ns 5g-up) y "open5gs-cp"
-#     (plano de control, ns 5g-cp). Suscriptor vía populate del chart.
-#   - N2 por la red de pods de Cilium (Multus opcional y apagado): así las
-#     políticas C1-C3 ven el tráfico N2. El gNB llega al AMF por un Service
-#     headless (Cilium 1.15 no soporta SCTP sobre VIP con KPR).
-#   - UERANSIM con rutas de binario correctas e IP del pod inyectada.
-#   - SPIRE integrado en Cilium (mutual authentication): Cilium lo instala en
-#     cilium-spire con el trust domain de la tesis y el playbook verifica que
-#     cada identidad de Cilium tenga su SVID. Sustituye al SPIRE autónomo de
-#     la v1 (bootstrap/manifests/spire.yaml), que no podía atestar agentes.
+# Qué despliega:
+#   - k3s (sin flannel ni kube-proxy) con --node-ip explícito.
+#   - Cilium (kube-proxy replacement, L7, SCTP, Hubble) con pool de pods
+#     10.42.0.0/16 y las CLIs cilium/hubble en el master.
+#   - Open5GS (chart OCI de Gradiant) en DOS releases: "open5gs-up" (UPF,
+#     ns 5g-up, sitio de borde) y "open5gs-cp" (plano de control, ns 5g-cp,
+#     sitio central). Suscriptor vía populate del chart.
+#   - UERANSIM (gNB y UE) en 5g-ran.
+#   - Las políticas de Cilium del modo elegido (k8s/cilium/).
 #
-# Redes dedicadas (KCD Porto, deploy_multus: true en group_vars/all.yml; NO
-# verificado en clúster todavía, ver docs/pruebas-fase1.md):
-#   - Rutas de CNI leídas de la config de containerd de k3s; ahí van los
-#     plugins ipvlan/static, la config de Cilium y los hostPath de Multus.
-#   - Multus thick con versión fijada y Cilium con cni.exclusive=false.
-#   - NAD 'access' (5g-cp, 5g-ran, 5g-up) y 'n6' (5g-up): ipvlan L2, IPAM
-#     static; cada pod pide su IP en la anotación.
-#   - AMF con NGAP en la red access (amf.yaml completo en customOpen5gsConfig),
-#     UPF con GTP-U en n3, sin NAT y con policy routing del pool por n6, gNB
-#     con N2/N3 en access y el AMF por IP fija.
-#   - dn-gw: ip_forward, ruta al pool de UE, CGNAT y firewall de N6, y un
-#     servidor iperf3 y HTTP como servicios de la red de datos.
-# Con deploy_multus: false (plan B) nada de esto se ejecuta: una sola red,
-# como en el lab v2.
+# Interruptores (ansible/group_vars/all.yml):
+#   deploy_multus   redes dedicadas access (N2+N3) y n6 con Multus, dn-gw,
+#                   admisión con Kyverno y MultiNetworkPolicy.
+#                   NO verificado en clúster todavía: docs/pruebas-fase1.md.
+#                   Detalle: rutas de CNI leídas de la config de containerd de
+#                   k3s; Multus thick con versión fijada y Cilium con
+#                   cni.exclusive=false; NAD 'access' (5g-cp, 5g-ran, 5g-up) y
+#                   'n6' (5g-up), ipvlan L2 con IPAM static; AMF con NGAP en
+#                   access (amf.yaml completo en customOpen5gsConfig); UPF con
+#                   GTP-U en n3, sin NAT y con policy routing del pool por n6;
+#                   gNB con N2/N3 en access; dn-gw con ip_forward, ruta al pool
+#                   de UE, CGNAT, firewall de N6 y servicios iperf3/HTTP.
+#   sbi_tls         mTLS en la SBI con una CA generada al desplegar.
+#   node_encryption WireGuard de Cilium entre nodos.
+#   deploy_tetragon Tetragon y sus TracingPolicy.
+# Con deploy_multus: false (plan B) todo viaja por la red de pods: N2 llega al
+# AMF por un Service headless (Cilium 1.15 no soporta SCTP sobre VIP con KPR).
 ---
 
 # =====================================================================
@@ -363,7 +361,7 @@
     PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
   vars:
     repo_root: "{{ playbook_dir }}/.."
-    work_dir: /tmp/cib46
+    work_dir: /tmp/kcd-lab
   tasks:
     - name: "Crear directorio de trabajo en el master"
       ansible.builtin.file: { path: "{{ work_dir }}", state: directory, mode: "0755" }
@@ -417,18 +415,13 @@
         --set cni.binPath={{ cni_bin_dir | default(cni_bin_dir_default) }}
         --set cni.confPath={{ cni_conf_dir | default(cni_conf_dir_default) }}
         {% endif %}
-        {% if deploy_spire | bool %}
-        --set authentication.mutual.spire.enabled=true
-        --set authentication.mutual.spire.install.enabled=true
-        --set authentication.mutual.spire.trustDomain={{ spire_trust_domain }}
-        {% endif %}
         {% if node_encryption | default(false) | bool %}
         --set encryption.enabled=true
         --set encryption.type=wireguard
         --set encryption.nodeEncryption=true
         {% endif %}
       changed_when: true
-      tags: [cilium, spire]
+      tags: [cilium]
 
     - name: "Esperar a que Cilium esté listo en todos los nodos"
       ansible.builtin.command: "kubectl -n kube-system rollout status ds/cilium --timeout=300s"
@@ -439,67 +432,6 @@
       ansible.builtin.command: "kubectl wait --for=condition=Ready nodes --all --timeout=300s"
       changed_when: false
       tags: [cilium]
-
-    # ---------- SPIRE (instalado por Cilium en cilium-spire) ----------
-    - name: "Esperar al SPIRE server (StatefulSet con PVC de local-path)"
-      ansible.builtin.command: "kubectl -n cilium-spire rollout status statefulset/spire-server --timeout=600s"
-      when: deploy_spire | bool
-      changed_when: false
-      tags: [cilium, spire]
-
-    - name: "Esperar a los SPIRE agents (uno por nodo)"
-      ansible.builtin.command: "kubectl -n cilium-spire rollout status daemonset/spire-agent --timeout=300s"
-      when: deploy_spire | bool
-      changed_when: false
-      tags: [cilium, spire]
-
-    - name: "Healthcheck del SPIRE server"
-      ansible.builtin.command: >
-        kubectl -n cilium-spire exec spire-server-0 -c spire-server --
-        /opt/spire/bin/spire-server healthcheck
-      register: spire_health
-      retries: 20
-      delay: 6
-      until: "'Server is healthy' in spire_health.stdout"
-      when: deploy_spire | bool
-      changed_when: false
-      tags: [cilium, spire]
-
-    - name: "¿El operador de Cilium ya registró identidades en SPIRE?"
-      ansible.builtin.command: >
-        kubectl -n cilium-spire exec spire-server-0 -c spire-server --
-        /opt/spire/bin/spire-server entry show -selector cilium:mutual-auth
-      register: spire_entries
-      failed_when: false
-      changed_when: false
-      when: deploy_spire | bool
-      tags: [cilium, spire]
-
-    # La doc de Cilium pide reiniciar operador y agentes tras activar SPIRE:
-    # si arrancaron antes de que SPIRE estuviera listo, no registran nada.
-    - name: "Reiniciar operador y agentes de Cilium (solo si SPIRE aún no tiene entradas)"
-      ansible.builtin.shell: |
-        kubectl -n kube-system rollout restart deployment/cilium-operator
-        kubectl -n kube-system rollout restart daemonset/cilium
-        kubectl -n kube-system rollout status deployment/cilium-operator --timeout=300s
-        kubectl -n kube-system rollout status daemonset/cilium --timeout=300s
-      when:
-        - deploy_spire | bool
-        - spire_entries.stdout is not search('Found [1-9]')
-      changed_when: true
-      tags: [cilium, spire]
-
-    - name: "Verificar que cada identidad de Cilium tiene su entrada SPIFFE"
-      ansible.builtin.command: >
-        kubectl -n cilium-spire exec spire-server-0 -c spire-server --
-        /opt/spire/bin/spire-server entry show -selector cilium:mutual-auth
-      register: spire_entries2
-      retries: 20
-      delay: 6
-      until: spire_entries2.stdout is search('Found [1-9]')
-      when: deploy_spire | bool
-      changed_when: false
-      tags: [cilium, spire]
 
     # ---------- CLIs de observabilidad (cilium, hubble) ----------
     - name: "Instalar cilium CLI y hubble CLI en el master"
@@ -598,12 +530,12 @@
             --wait --timeout 10m
           changed_when: true
 
-        # Solo el documento de redes dedicadas: el de la tesis
-        # (cib46-identity-guard) necesita ajustar su allowlist a mano.
+        # Solo el documento de redes dedicadas; el de identidad de NF se
+        # aplica a mano (ver k8s/admission/README.md).
         - name: "Leer la política de admisión de redes dedicadas"
           ansible.builtin.set_fact:
             multus_guard: >-
-              {{ lookup('ansible.builtin.file', repo_root + '/bootstrap/admission/kyverno-identity-guard.yaml')
+              {{ lookup('ansible.builtin.file', repo_root + '/k8s/admission/kyverno-redes-dedicadas.yaml')
                  | from_yaml_all | selectattr('metadata.name', 'equalto', 'kcd-multus-network-guard') | first }}
 
         # Las IP de la política están escritas en el YAML (para poder aplicarlo
@@ -613,7 +545,7 @@
           ansible.builtin.assert:
             that:
               - (multus_guard | to_json) is search(item | regex_escape)
-            fail_msg: "{{ item }} no aparece en kcd-multus-network-guard; actualiza bootstrap/admission/kyverno-identity-guard.yaml"
+            fail_msg: "{{ item }} no aparece en kcd-multus-network-guard; actualiza k8s/admission/kyverno-redes-dedicadas.yaml"
             quiet: true
           loop:
             - "{{ amf_n2_ip }}/{{ access_cidr.split('/')[1] }}"
@@ -707,12 +639,12 @@
 
         - name: "Copiar las MultiNetworkPolicy"
           ansible.builtin.copy:
-            src: "{{ repo_root }}/multinetwork-policies/"
-            dest: "{{ work_dir }}/multinetwork-policies/"
+            src: "{{ repo_root }}/k8s/multinetwork/"
+            dest: "{{ work_dir }}/k8s/multinetwork/"
             mode: "0644"
 
         - name: "Aplicar las MultiNetworkPolicy (access y n6)"
-          ansible.builtin.command: "kubectl apply -k {{ work_dir }}/multinetwork-policies/"
+          ansible.builtin.command: "kubectl apply -k {{ work_dir }}/k8s/multinetwork/"
           register: mnp_policies
           changed_when: "'configured' in mnp_policies.stdout or 'created' in mnp_policies.stdout"
 
@@ -741,14 +673,14 @@
       tags: [metrics]
 
     # ---------- Open5GS (chart OCI de Gradiant) ----------
-    # Arquitectura v3: el core se despliega en DOS releases del mismo chart.
+    # El core se despliega en DOS releases del mismo chart.
     #   1) open5gs-up (ns 5g-up, borde)   -> solo el UPF (plano de usuario)
     #   2) open5gs-cp (ns 5g-cp, central) -> plano de control + MongoDB
     # El UPF va PRIMERO: el SMF resuelve por DNS el Service N4 del UPF al
     # arrancar y aborta si no existe.
     - name: "Copiar values de Open5GS al master"
       ansible.builtin.copy:
-        src: "{{ repo_root }}/helm-values/{{ item }}"
+        src: "{{ repo_root }}/k8s/helm-values/{{ item }}"
         dest: "{{ work_dir }}/{{ item }}"
         mode: "0644"
       loop:
@@ -882,7 +814,7 @@
     # que se ejecuten en el AMF).
     - name: "Copiar y aplicar el pod de prueba de la SBI (sbi-probe)"
       ansible.builtin.copy:
-        src: "{{ repo_root }}/bootstrap/manifests/sbi-probe.yaml"
+        src: "{{ repo_root }}/k8s/manifests/sbi-probe.yaml"
         dest: "{{ work_dir }}/sbi-probe.yaml"
         mode: "0644"
       tags: [open5gs, tls]
@@ -958,7 +890,7 @@
     # ---------- Service headless N2 del AMF ----------
     - name: "Copiar y aplicar el Service headless N2 del AMF"
       ansible.builtin.copy:
-        src: "{{ repo_root }}/bootstrap/manifests/amf-n2-headless.yaml"
+        src: "{{ repo_root }}/k8s/manifests/amf-n2-headless.yaml"
         dest: "{{ work_dir }}/amf-n2-headless.yaml"
         mode: "0644"
       tags: [open5gs, ueransim]
@@ -977,9 +909,9 @@
         dest: "{{ work_dir }}/{{ item.dst }}"
         mode: "0644"
       loop:
-        - { src: "{{ repo_root }}/ueransim-config/gnb.yaml", dst: "gnb.yaml" }
-        - { src: "{{ repo_root }}/ueransim-config/ue.yaml", dst: "ue.yaml" }
-        - { src: "{{ repo_root }}/bootstrap/manifests/ueransim.yaml", dst: "ueransim.yaml" }
+        - { src: "{{ repo_root }}/k8s/ueransim/gnb.yaml", dst: "gnb.yaml" }
+        - { src: "{{ repo_root }}/k8s/ueransim/ue.yaml", dst: "ue.yaml" }
+        - { src: "{{ repo_root }}/k8s/manifests/ueransim.yaml", dst: "ueransim.yaml" }
       tags: [ueransim]
 
     - name: "Crear ConfigMaps de UERANSIM"
@@ -1070,19 +1002,19 @@
           until: tg_crd.rc == 0
           changed_when: false
 
-        - name: "Copiar tetragon-policies al master"
+        - name: "Copiar k8s/tetragon al master"
           ansible.builtin.copy:
-            src: "{{ repo_root }}/tetragon-policies/"
-            dest: "{{ work_dir }}/tetragon-policies/"
+            src: "{{ repo_root }}/k8s/tetragon/"
+            dest: "{{ work_dir }}/k8s/tetragon/"
             mode: "0644"
 
         - name: "Aplicar las políticas de Tetragon"
-          ansible.builtin.command: "kubectl apply -k {{ work_dir }}/tetragon-policies/"
+          ansible.builtin.command: "kubectl apply -k {{ work_dir }}/k8s/tetragon/"
           register: tg_policies
           changed_when: "'configured' in tg_policies.stdout or 'created' in tg_policies.stdout"
 
     # ---------- Fase 3: políticas de Cilium para la red de pods ----------
-    # Un overlay por modo (cilium-policies/lab/README.md). --prune borra las
+    # Un overlay por modo (k8s/cilium/README.md). --prune borra las
     # CNP del lab que ya no estén en el overlay (p. ej. las de N2/N3/N6 al
     # pasar del plan B a Multus) y nada más.
     - name: "Fase 3: políticas de Cilium del lab"
@@ -1091,15 +1023,15 @@
       vars:
         policy_mode: "{{ ('multus' if (deploy_multus | bool) else 'una-red') ~ ('-tls' if (sbi_tls | bool) else '') }}"
       block:
-        - name: "Copiar cilium-policies/lab al master"
+        - name: "Copiar k8s/cilium al master"
           ansible.builtin.copy:
-            src: "{{ repo_root }}/cilium-policies/lab/"
-            dest: "{{ work_dir }}/cilium-policies-lab/"
+            src: "{{ repo_root }}/k8s/cilium/"
+            dest: "{{ work_dir }}/cilium/"
             mode: "0644"
 
         - name: "Aplicar el overlay {{ policy_mode }}"
           ansible.builtin.command: >
-            kubectl apply -k {{ work_dir }}/cilium-policies-lab/{{ policy_mode }}
+            kubectl apply -k {{ work_dir }}/cilium/{{ policy_mode }}
             --prune -l kcd.io/policy-set=lab
             --prune-allowlist=cilium.io/v2/CiliumNetworkPolicy
           register: lab_policies

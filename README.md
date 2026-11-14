@@ -7,10 +7,6 @@ central, plano de usuario en el borde y la radio y la salida a internet por rede
 dedicadas. Sirve para ver dónde funciona una política Zero Trust y dónde deja de
 funcionar.
 
-Nace de [`BryanTxz10/cib46-zta-5g-core`](https://github.com/BryanTxz10/cib46-zta-5g-core),
-el testbed de una tesis, y conserva su historial. El material que solo servía a la
-tesis está archivado en [`legacy/`](legacy/) y no se mantiene.
-
 ## La charla en cinco pasos
 
 1. **Punto de partida.** Una política de red de Cilium corta el movimiento lateral
@@ -67,9 +63,6 @@ y diferencias que se asumen: [`docs/arquitectura.md`](docs/arquitectura.md).
 | Kyverno | chart 3.1.4 |
 | Tetragon | chart 1.1.2 |
 
-SPIRE (autenticación mutua de Cilium) sigue instalado, pero no es foco: Cilium la
-marca como obsoleta en 1.20 y la retira en 1.21.
-
 ## Cómo levantarlo
 
 Guía completa: [`docs/guia-lab-desde-cero.md`](docs/guia-lab-desde-cero.md). En
@@ -105,12 +98,18 @@ generan al desplegar.
 | Comando | Qué se ve |
 |---|---|
 | `make policy-matrix` | sin clúster: qué flujos permite o corta Cilium en cada modo |
-| `kubectl apply -f attack-scripts/deploy-attacker-access.yaml` | el API server rechaza un pod que pide la red de la radio |
+| `bash attacks/a1-movimiento-lateral.sh` | un pod comprometido en la RAN no alcanza ningún servicio del core |
+| `bash attacks/a2-nrf-desde-la-ran.sh` | el mismo pod no puede registrar, desviar ni borrar NF en el NRF |
+| `bash attacks/a2-nrf-desde-impostor.sh` | un impostor dentro de `5g-cp` tampoco: el namespace no da identidad |
+| `kubectl apply -f attacks/attacker-access.yaml` | el API server rechaza un pod que pide la red de la radio |
+| `AMF_IP=10.10.0.10 ORIGEN=gnb bash attacks/a3-flood-n2.sh` | un gNB comprometido sí inunda N2: la política decide quién, no cuánto |
 | `make demo-l7-ciega` | la misma petición no autorizada al NRF: 403 en claro, sin visibilidad con mTLS |
 | `make demo-tetragon` | una shell dentro del AMF muere antes de ejecutarse |
 | `make spec2policy` | políticas L7 y blast radius map derivados de la OpenAPI 3GPP |
 
-Escenarios de ataque y qué los para: [`docs/arquitectura.md`](docs/arquitectura.md) §5.
+Antes de los ataques: `kubectl apply -f attacks/attacker-ran.yaml` (y
+`attacks/nf-impostor.yaml` para el impostor). Qué para cada escenario:
+[`docs/arquitectura.md`](docs/arquitectura.md) §5.
 
 ## Blast radius map
 
@@ -138,17 +137,19 @@ se presente como probado en la charla será lo que se haya visto funcionar.
 
 ```
 .
-├── ansible/               # despliegue (site.yml), hardening y plantillas
-├── bootstrap/             # despliegue alternativo por bash, manifiestos, admisión y checks
-├── cilium-policies/lab/   # políticas de Cilium: base + overlay por modo
-├── multinetwork-policies/ # MultiNetworkPolicy de las redes access y n6
-├── tetragon-policies/     # TracingPolicy de Tetragon
-├── helm-values/           # values del chart de Open5GS (Gradiant)
-├── ueransim-config/       # gNB y UE
-├── attack-scripts/        # escenarios de ataque
-├── tools/spec2policy/     # spec-as-policy y blast radius map
-├── docs/                  # arquitectura, guías y pruebas por fase
-└── legacy/                # material de la tesis, archivado
+├── ansible/            # despliegue (site.yml), hardening (hardening.yml) y plantillas
+├── k8s/
+│   ├── cilium/         # políticas de Cilium: base + overlay por modo
+│   ├── multinetwork/   # MultiNetworkPolicy de las redes access y n6
+│   ├── admission/      # políticas de Kyverno: redes dedicadas e identidad de NF
+│   ├── tetragon/       # TracingPolicy de Tetragon
+│   ├── helm-values/    # values del chart de Open5GS (Gradiant)
+│   ├── ueransim/       # configuración del gNB y del UE
+│   └── manifests/      # UERANSIM, sbi-probe y el Service N2 del plan B
+├── attacks/            # escenarios de ataque
+├── scripts/            # prueba de humo, demos y matriz de políticas
+├── tools/spec2policy/  # spec-as-policy y blast radius map
+└── docs/               # arquitectura, guías y pruebas por fase
 ```
 
 Integración continua y seguridad del pipeline:

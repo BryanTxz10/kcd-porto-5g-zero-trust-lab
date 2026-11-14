@@ -1,0 +1,24 @@
+# deny-que-permite.yaml — EJEMPLO DE ERROR. No lo apliques.
+#
+# Se llama "deny" y la intención era bloquear todo lo que llega de 5g-ran a
+# 5g-cp. Hace lo contrario: en Cilium, una regla `ingress.fromEndpoints` es un
+# ALLOW. Esta política permite que cualquier pod de 5g-ran llegue a cualquier
+# pod de 5g-cp, en cualquier puerto.
+#
+# Cómo se bloquea de verdad: con default deny (una regla de ingress vacía, ver
+# k8s/cilium/base/00-default-deny.yaml) y permitiendo solo lo necesario, o con
+# `ingressDeny`.
+#
+# Lección: lee tus políticas como un atacante, no como su autor.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: deny-ran-to-cp
+  namespace: 5g-cp
+spec:
+  endpointSelector:
+    matchLabels: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-ran

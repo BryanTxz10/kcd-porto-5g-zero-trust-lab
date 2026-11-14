@@ -1,15 +1,15 @@
 # CI/CD y roles de seguridad del despliegue
 
-Automatización de la verificación del despliegue del testbed CIB46 mediante
-GitHub Actions. El objetivo es que **nada que rompa el despliegue o introduzca
-un secreto llegue a `main`**, en coherencia con el enfoque Zero Trust de la
-investigación (desconfianza por defecto también en la cadena de CI/CD).
+Automatización de la verificación del despliegue del lab mediante GitHub
+Actions. El objetivo es que **nada que rompa el despliegue o introduzca un secreto
+llegue a `main`**, con el mismo enfoque Zero Trust del lab (desconfianza por
+defecto también en la cadena de CI/CD).
 
 ## Workflows
 
 | Workflow | Archivo | Qué valida | Disparadores |
 |---|---|---|---|
-| **CI — Validación de despliegue** | `.github/workflows/ci.yml` | bash (shellcheck + `bash -n` + `make lint`), YAML (yamllint), Ansible (`--syntax-check` + ansible-lint), Kustomize (`build` de las políticas del lab, MultiNetworkPolicy, Tetragon y las capas de la tesis), Python (`compileall` + ruff), matriz de políticas en los dos modos, spec2policy (ruff + pytest + ejemplos al día) | push, PR a `main`, manual |
+| **CI — Validación de despliegue** | `.github/workflows/ci.yml` | bash (shellcheck + `bash -n` + `make lint`), YAML (yamllint), Ansible (`--syntax-check` + ansible-lint), Kustomize (`build` de las políticas de Cilium, MultiNetworkPolicy y Tetragon), Python (`compileall` + ruff), matriz de políticas en los dos modos, spec2policy (ruff + pytest + ejemplos al día) | push, PR a `main`, manual |
 | **Seguridad CI/CD** | `.github/workflows/security.yml` | Secretos (gitleaks), seguridad de los workflows (actionlint + zizmor), misconfiguraciones IaC/K8s (trivy, checkov, kube-linter) | push, PR a `main`, semanal (lunes 06:00 UTC), manual |
 
 Réplica local del pipeline de CI:
@@ -55,8 +55,8 @@ Estos son los controles de seguridad exigidos a un CI/CD y cómo se cumplen:
 
 ## Qué NO cubre el CI (requiere infraestructura)
 
-El despliegue real (`make up` / `ansible-playbook site.yml`) necesita **3 nodos
-Ubuntu 22.04** con k3s, SCTP y acceso SSH (ver `legacy/REPRODUCIBILITY.md`). El CI
+El despliegue real (`make up` / `ansible-playbook site.yml`) necesita las VMs del
+lab (Ubuntu 22.04, SCTP y acceso SSH; ver `docs/guia-vms-realista.md`). El CI
 valida la **corrección** de todo lo que se ejecuta (sintaxis, esquema, build),
 pero no levanta el clúster 5G: eso se hace sobre las VMs del testbed.
 

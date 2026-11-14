@@ -11,7 +11,7 @@ metadata:
   namespace: 5g-cp
   labels:
     app.kubernetes.io/part-of: spec2policy
-    cib46.io/managed: 'true'
+    kcd.io/managed: 'true'
   annotations:
     description: Visibilidad L7 de la SBI (sin restricción) para capturar método y path con Hubble en
       modo sin TLS.

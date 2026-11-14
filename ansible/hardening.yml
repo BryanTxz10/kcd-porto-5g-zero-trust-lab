@@ -1,4 +1,4 @@
-# hardening.yml — Endurecimiento del clúster (Perfil A, arquitectura v2).
+# hardening.yml — Endurecimiento del clúster.
 # Se ejecuta DESPUÉS de site.yml. Aplica los controles de hardening que no son
 # políticas de Cilium: Pod Security Standards por namespace, taint del master y
 # recordatorios de los flags que se activan en otros puntos.
@@ -8,17 +8,17 @@
 #   ansible-playbook hardening.yml -K --tags pss      # solo Pod Security
 #   ansible-playbook hardening.yml -K --tags taint    # solo el taint del master
 ---
-- name: "Hardening del clúster (Perfil A)"
+- name: "Hardening del clúster"
   hosts: master
   become: true
   environment:
     KUBECONFIG: "{{ kubeconfig_path }}"
   tasks:
-    # ── Pod Security Standards por namespace (hallazgo 10) ──────────────────
+    # ── Pod Security Standards por namespace ────────────────────────────────
     # Modo warn+audit (NO enforce): surface de violaciones sin romper el attach.
     # El gNB usa NET_ADMIN y el UE es privileged, así que 'enforce=baseline'
     # rechazaría esos pods. Cuando muevas el UE a 5g-ue (privileged) podrás
-    # subir 5g-cp/5g-db a 'enforce=baseline'. Ver legacy/docs/arquitectura-v2-hardening.md.
+    # subir 5g-cp a 'enforce=baseline'.
     - name: "PSS: avisar/auditar baseline en 5g-cp y 5g-ran"
       ansible.builtin.command: >
         kubectl label ns {{ item }}
@@ -35,9 +35,9 @@
       changed_when: false
       tags: [pss]
 
-    # ── Taint del master (hallazgo 5): control-plane solo ───────────────────
+    # ── Taint del master: solo plano de control de Kubernetes ───────────────
     # El master deja de aceptar cargas. Cilium (DaemonSet) tolera todo; CoreDNS,
-    # metrics-server y cilium-spire se reprograman a los workers. Aplícalo en un
+    # y metrics-server se reprograman a los workers. Aplícalo en un
     # despliegue nuevo (en caliente, un pod ya colocado en el master no se mueve).
     - name: "Taint NoSchedule en el nodo control-plane"
       ansible.builtin.command: >

@@ -24,13 +24,13 @@ metadata:
   namespace: 5g-cp
   labels:
     app.kubernetes.io/part-of: spec2policy
-    cib46.io/managed: 'true'
+    kcd.io/managed: 'true'
   annotations:
     description: 'spec-as-policy (standard): ingress SBI de scp con reglas HTTP por método y path derivadas
       de los OpenAPI 3GPP de namf-comm, nausf-auth, nbsf-management, nnrf-disc, nnssf-nsselection, npcf-am-policy-control,
       npcf-smpolicycontrol, nsmf-pdusession, nudm-sdm, nudm-ueau, nudm-uecm, nudr-dr.'
-    spec2policy.cib46.io/mode: standard
-    spec2policy.cib46.io/services: namf-comm,nausf-auth,nbsf-management,nnrf-disc,nnssf-nsselection,npcf-am-policy-control,npcf-smpolicycontrol,nsmf-pdusession,nudm-sdm,nudm-ueau,nudm-uecm,nudr-dr
+    spec2policy.kcd.io/mode: standard
+    spec2policy.kcd.io/services: namf-comm,nausf-auth,nbsf-management,nnrf-disc,nnssf-nsselection,npcf-am-policy-control,npcf-smpolicycontrol,nsmf-pdusession,nudm-sdm,nudm-ueau,nudm-uecm,nudr-dr
 spec:
   endpointSelector:
     matchLabels:

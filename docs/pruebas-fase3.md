@@ -12,7 +12,7 @@ interruptor `deploy_multus`.
 
 ## 1. Qué se aplica
 
-`cilium-policies/lab/` (detalle en su [`README.md`](../cilium-policies/lab/README.md)):
+`k8s/cilium/` (detalle en su [`README.md`](../k8s/cilium/README.md)):
 
 | | Plan B (`una-red/`) | Redes dedicadas (`multus/`) |
 |---|---|---|
@@ -32,9 +32,6 @@ El playbook aplica el overlay del modo al final (`--tags policies`, variable
 modo que al cambiar de modo se borran las reglas que sobran (p. ej. las de N2/N3/N6
 al pasar a Multus). A mano: `make policies` (elige el modo leyendo
 `group_vars/all.yml`) o `make policies MODE=una-red|multus`.
-
-Las capas `cilium-policies/conditions/c0…c3` son de la tesis y ya no se aplican ni se
-evalúan; se conservan como referencia.
 
 ## 2. Sin clúster: la matriz
 
@@ -69,11 +66,11 @@ hubble observe -n 5g-cp --verdict DROPPED --last 50     # no debe haber drops en
 ### 3.3 Lo que debe caer, con Hubble
 
 ```bash
-kubectl apply -f attack-scripts/deploy-attacker-ue-lateral.yaml      # atacante en 5g-ran
-kubectl -n 5g-ran exec attacker-ue-lateral -- \
+kubectl apply -f attacks/attacker-ran.yaml      # atacante en 5g-ran
+kubectl -n 5g-ran exec attacker-ran -- \
   curl -s -m 3 http://open5gs-cp-nrf-sbi.5g-cp.svc.cluster.local:7777/nnrf-disc/v1/nf-instances || echo bloqueado
-hubble observe --from-pod 5g-ran/attacker-ue-lateral --verdict DROPPED --last 20
-#   ... 5g-ran/attacker-ue-lateral -> 5g-cp/open5gs-cp-nrf-... Policy denied DROPPED (TCP Flags: SYN)
+hubble observe --from-pod 5g-ran/attacker-ran --verdict DROPPED --last 20
+#   ... 5g-ran/attacker-ran -> 5g-cp/open5gs-cp-nrf-... Policy denied DROPPED (TCP Flags: SYN)
 ```
 
 En modo Multus, además, el UPF no sale a `world` por la red de pods:

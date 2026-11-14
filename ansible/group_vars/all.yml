@@ -1,5 +1,5 @@
 # all.yml — VARIABLES del despliegue (versiones y parámetros).
-# Equivale a bootstrap/versions.env, pero en formato Ansible.
+# Versiones, IPs e interruptores del lab.
 # Guía paso a paso: docs/guia-lab-desde-cero.md
 # VMs y redes (Fase 0, cuatro VMs): docs/guia-vms-realista.md
 # ================== REVISA / EDITA ==================
@@ -22,7 +22,7 @@ metrics_server_version: "v0.7.1"
 #                         hace de red de datos (router N6 con CGNAT).
 #                         NO verificado todavía en clúster.
 # deploy_multus: false -> PLAN B, UNA sola red: todo viaja por la red de pods
-#                         de Cilium (como en el lab v2). Solo hace falta la NIC
+#                         de Cilium. Solo hace falta la NIC
 #                         mgmt; dn-gw no se usa y puede estar apagada.
 deploy_multus: false
 # Multus thick (daemonset). Manifiesto del tag fijado; las rutas de CNI del
@@ -74,8 +74,8 @@ dn_http_port: 8080
 #   1) aislamiento L2: los LAN segments de VMware (equivalente a VLAN/VRF);
 #   2) admisión con Kyverno: quién puede pedir 'access'/'n6'
 #      (ClusterPolicy kcd-multus-network-guard en
-#      bootstrap/admission/kyverno-identity-guard.yaml);
-#   3) MultiNetworkPolicy con multi-networkpolicy-iptables (multinetwork-policies/).
+#      k8s/admission/kyverno-redes-dedicadas.yaml);
+#   3) MultiNetworkPolicy con multi-networkpolicy-iptables (k8s/multinetwork/).
 # Kyverno 1.11.4 (chart 3.1.4) soporta Kubernetes 1.25-1.28.
 kyverno_chart_version: "3.1.4"
 # Enforce rechaza; Audit solo registra (útil si la política bloquea algo
@@ -112,7 +112,7 @@ ue_dns: ["8.8.8.8", "8.8.4.4"]
 # --- Tetragon (Fase 6) ---
 # Observa y corta en el kernel (eBPF): mata una shell o una herramienta de red
 # dentro del AMF antes de que se ejecute, y registra qué proceso abre sockets
-# en las redes access y n6 (tetragon-policies/). Funciona aunque la SBI vaya
+# en las redes access y n6 (k8s/tetragon/). Funciona aunque la SBI vaya
 # cifrada. Es independiente de la versión de Cilium (se instala con su propio
 # chart del repo de Cilium); 1.1.x soporta TracingPolicyNamespaced.
 # ⚠ VERIFICAR que la versión del chart existe: el playbook falla si no.
@@ -125,24 +125,14 @@ tetragon_chart_version: "1.1.2"
 open5gs_chart: "oci://registry-1.docker.io/gradiantcharts/open5gs"
 open5gs_chart_version: "2.3.4"
 # El nombre del release define los nombres de servicios y deployments
-# (open5gs-cp-amf, open5gs-cp-nrf-sbi...). Lo usan gnb.yaml, los checks y los
-# scripts de C2. No lo cambies.
+# (open5gs-cp-amf, open5gs-cp-nrf-sbi...). Lo usan gnb.yaml, las políticas y
+# los scripts. No lo cambies.
 open5gs_release: "open5gs-cp"
-# Plano de usuario (arquitectura v3): el UPF es un segundo release del mismo
+# Plano de usuario: el UPF es un segundo release del mismo
 # chart, en el namespace 5g-up. De este nombre salen los Services
 # open5gs-up-upf-pfcp (N4) y open5gs-up-upf-gtpu (N3). Si lo cambias, cambia
-# también smf.config.upf.pfcp.hostname en helm-values/open5gs-values.yaml.
+# también smf.config.upf.pfcp.hostname en k8s/helm-values/open5gs-values.yaml.
 open5gs_up_release: "open5gs-up"
-
-# --- Identidad: SPIRE integrado en Cilium (mutual authentication, beta) ---
-# Cilium instala SPIRE (namespace cilium-spire), el operador registra una
-# entrada SPIFFE por cada identidad de Cilium y las políticas con
-#   authentication: { mode: required }
-# exigen un handshake mTLS entre nodos antes de dejar pasar el tráfico.
-# Open5GS no necesita soportar SPIFFE: lo hace Cilium por debajo.
-deploy_spire: true
-spire_trust_domain: "cib46.5gcore.local"   # el mismo trust domain de la tesis
-spire_version: "1.8.5"                     # informativo: lo fija el chart de Cilium 1.15.4
 
 # --- Cifrado entre nodos (Fase 3) ---
 # WireGuard de Cilium entre nodos: protege la SBI y N4 cuando cruzan del sitio
@@ -154,7 +144,7 @@ spire_version: "1.8.5"                     # informativo: lo fija el chart de Ci
 node_encryption: false
 
 # --- Políticas de Cilium del lab (Fase 3) ---
-# Al final del despliegue se aplica cilium-policies/lab/<modo>, con
+# Al final del despliegue se aplica k8s/cilium/<modo>, con
 # modo = multus si deploy_multus es true y una-red si es false. false deja el
 # clúster sin políticas (útil para depurar el core).
 apply_cilium_policies: true
@@ -162,7 +152,7 @@ apply_cilium_policies: true
 # --- RAN simulada ---
 ueransim_version: "v3.2.6"
 
-# --- Imágenes (PINNEA POR DIGEST para calidad-paper; ver legacy/REPRODUCIBILITY.md) ---
+# --- Imágenes (fíjalas por digest cuando las tengas descargadas) ---
 netshoot_image: "nicolaka/netshoot:v0.13"
 ueransim_gnb_image: "towards5gs/ueransim-gnb:v3.2.6"
 ueransim_ue_image: "towards5gs/ueransim-ue:v3.2.6"

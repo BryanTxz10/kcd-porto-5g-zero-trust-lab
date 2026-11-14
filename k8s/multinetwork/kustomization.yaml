@@ -1,0 +1,9 @@
+# MultiNetworkPolicy de las redes dedicadas (Fase 2, deploy_multus: true).
+# Las aplica multi-networkpolicy-iptables; Cilium no ve estas interfaces.
+# Uso: kubectl apply -k k8s/multinetwork/  (o el tag 'mnp' de site.yml)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - 00-access-5g-cp-amf.yaml
+  - 01-access-5g-ran-gnb.yaml
+  - 02-access-n6-5g-up-upf.yaml

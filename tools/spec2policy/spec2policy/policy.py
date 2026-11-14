@@ -1,7 +1,7 @@
 """Generador de CiliumNetworkPolicy con reglas http por método y path.
 
 Una política de ingress por NF (productores y SCP), con el mismo criterio de
-selección que cilium-policies/lab/base: el par se identifica por namespace,
+selección que k8s/cilium/base: el par se identifica por namespace,
 release del chart (app.kubernetes.io/instance=open5gs-cp) y nombre de NF
 (app.kubernetes.io/name).
 
@@ -24,7 +24,7 @@ MODE_STANDARD = "standard"
 MODE_OBSERVED = "observed"
 MODES = (MODE_STANDARD, MODE_OBSERVED)
 
-MANAGED_LABEL = "cib46.io/managed"
+MANAGED_LABEL = "kcd.io/managed"
 
 
 @dataclass
@@ -100,12 +100,12 @@ def build_policy(
                 f"spec-as-policy ({opts.mode}): ingress SBI de {nf} con reglas HTTP por "
                 f"método y path derivadas de los OpenAPI 3GPP de {', '.join(services)}."
             ),
-            "spec2policy.cib46.io/mode": opts.mode,
-            "spec2policy.cib46.io/services": ",".join(services),
+            "spec2policy.kcd.io/mode": opts.mode,
+            "spec2policy.kcd.io/services": ",".join(services),
         },
     }
     if opts.managed_label:
-        # Mismo label que ponen los overlays Kustomize: 'make condition' las borra.
+        # Mismo label que ponen las políticas del lab (k8s/cilium/base).
         metadata["labels"][MANAGED_LABEL] = "true"
     policy = {
         "apiVersion": "cilium.io/v2",

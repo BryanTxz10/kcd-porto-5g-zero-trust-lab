@@ -7,7 +7,7 @@ se ejecute y antes de que salga un solo paquete. Eso no depende de ver el tráfi
 
 > **Estado de verificación.**
 > - Comprobado en local: yamllint, `ansible-lint`, `--syntax-check` y
->   `kustomize build tetragon-policies`.
+>   `kustomize build k8s/tetragon`.
 > - **No se ha ejecutado en un clúster.** No se ha comprobado que exista el chart
 >   1.1.2, ni que las políticas carguen en esa versión, ni el comportamiento con el
 >   entrypoint de Gradiant (§4).
@@ -17,8 +17,8 @@ se ejecute y antes de que salga un solo paquete. Eso no depende de ver el tráfi
 | Pieza | Qué hace | Dónde |
 |---|---|---|
 | Tetragon | chart `cilium/tetragon` `tetragon_chart_version` (1.1.2, ⚠ por verificar) en kube-system, con `enablePolicyFilter=true` (necesario para `podSelector` y políticas por namespace) | `site.yml`, tag `tetragon` |
-| `amf-sin-shell` (TracingPolicyNamespaced, 5g-cp) | Sigkill en `security_bprm_check` si un proceso del pod del AMF que **no** es el PID 1 del contenedor intenta ejecutar una shell (`sh`, `bash`, `dash`, `ash`, `zsh`, `busybox`) o una herramienta de red o de scripting (`curl`, `wget`, `nc`, `ncat`, `netcat`, `socat`, `nmap`, `telnet`, `ssh`, `python3`, `perl`) | `tetragon-policies/00-amf-sin-shell.yaml` |
-| `sockets-redes-dedicadas` (TracingPolicy) | Registra, sin acción, qué proceso hace `bind` o `connect` con una dirección de access (10.10.0.0/24) o n6 (10.10.6.0/24). Es la observabilidad que Hubble no da en las interfaces de Multus | `tetragon-policies/01-sockets-redes-dedicadas.yaml` |
+| `amf-sin-shell` (TracingPolicyNamespaced, 5g-cp) | Sigkill en `security_bprm_check` si un proceso del pod del AMF que **no** es el PID 1 del contenedor intenta ejecutar una shell (`sh`, `bash`, `dash`, `ash`, `zsh`, `busybox`) o una herramienta de red o de scripting (`curl`, `wget`, `nc`, `ncat`, `netcat`, `socat`, `nmap`, `telnet`, `ssh`, `python3`, `perl`) | `k8s/tetragon/00-amf-sin-shell.yaml` |
+| `sockets-redes-dedicadas` (TracingPolicy) | Registra, sin acción, qué proceso hace `bind` o `connect` con una dirección de access (10.10.0.0/24) o n6 (10.10.6.0/24). Es la observabilidad que Hubble no da en las interfaces de Multus | `k8s/tetragon/01-sockets-redes-dedicadas.yaml` |
 
 ### La trampa del entrypoint
 

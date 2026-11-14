@@ -39,7 +39,7 @@ IPs fijas: AMF 10.10.0.10, gNB 10.10.0.20, UPF 10.10.0.30 (N3) y 10.10.6.30 (N6)
 dn-gw 10.10.6.1. Todas en `ansible/group_vars/all.yml`.
 
 El interruptor `deploy_multus` elige entre esta arquitectura (`true`) y el **plan B**
-(`false`): una sola red, todo por la red de pods de Cilium, como en el lab v2.
+(`false`): una sola red, todo por la red de pods de Cilium.
 
 ## 2. Por qué tres redes y no una
 

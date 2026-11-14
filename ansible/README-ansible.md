@@ -48,11 +48,10 @@ workers
 | `deploy_multus` | `false` | redes dedicadas `access` y `n6` con Multus, dn-gw, Kyverno y MultiNetworkPolicy |
 | `deploy_multi_networkpolicy` | `true` | MultiNetworkPolicy (solo con Multus) |
 | `kyverno_multus_guard_action` | `Enforce` | `Audit` para observar sin bloquear |
-| `apply_cilium_policies` | `true` | aplica `cilium-policies/lab/<modo>` al final |
+| `apply_cilium_policies` | `true` | aplica `k8s/cilium/<modo>` al final |
 | `node_encryption` | `false` | WireGuard entre nodos |
 | `sbi_tls` | `false` | mTLS en la SBI; la CA y los certificados se generan en el master |
-| `deploy_tetragon` | `true` | Tetragon y `tetragon-policies/` |
-| `deploy_spire` | `true` | SPIRE integrado en Cilium |
+| `deploy_tetragon` | `true` | Tetragon y `k8s/tetragon/` |
 
 ## Uso
 
@@ -76,7 +75,7 @@ ansible-playbook site.yml -K --tags policies
 |---|---|
 | `prereqs` | paquetes, SCTP, swap |
 | `k3s` | k3s server y agents |
-| `cilium`, `spire` | Cilium (y SPIRE integrado) |
+| `cilium` | Cilium |
 | `dn-gw` | router N6 |
 | `multus` | rutas de CNI, plugins, Multus, NAD y patches del UPF y el gNB |
 | `admission` | Kyverno y la política de redes dedicadas |
@@ -103,7 +102,7 @@ ansible-lint site.yml
 | `UNREACHABLE` | falta la llave SSH en esa VM | `ssh-copy-id <usuario>@<IP>` |
 | `Missing sudo password` | falta `-K` | relanzar con `-K` |
 | falla *Las rutas coinciden con las del master* | versiones distintas de k3s entre nodos | reinstalar el nodo con `k3s_version` |
-| falla *Las IP de la política coinciden con group_vars* | se cambiaron IPs en `group_vars` sin actualizar la política de Kyverno | editar `kcd-multus-network-guard` en `bootstrap/admission/kyverno-identity-guard.yaml` |
+| falla *Las IP de la política coinciden con group_vars* | se cambiaron IPs en `group_vars` sin actualizar la política de Kyverno | editar `k8s/admission/kyverno-redes-dedicadas.yaml` |
 | falla *El manifiesto tiene los ajustes* | el `deploy.yml` de multi-networkpolicy-iptables cambió de forma | revisar el manifiesto del tag fijado o `deploy_multi_networkpolicy: false` |
 
 Más síntomas en [`docs/guia-lab-desde-cero.md`](../docs/guia-lab-desde-cero.md) §14.

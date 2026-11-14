@@ -26,7 +26,7 @@ version: 1
 namespace: 5g-cp
 sbi_port: 7777
 
-# Labels que usan las CiliumNetworkPolicy del lab (cilium-policies/lab/base):
+# Labels que usan las CiliumNetworkPolicy del lab (k8s/cilium/base):
 # la identidad de una NF es su nombre más el release del chart.
 labels:
   nf_name: app.kubernetes.io/name

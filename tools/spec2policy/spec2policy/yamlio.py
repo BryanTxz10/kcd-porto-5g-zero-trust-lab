@@ -9,7 +9,7 @@ import yaml
 
 
 class _IndentedDumper(yaml.SafeDumper):
-    """Indenta las secuencias bajo su clave, como los manifiestos de cilium-policies/."""
+    """Indenta las secuencias bajo su clave, como los manifiestos de k8s/cilium/."""
 
     def increase_indent(self, flow: bool = False, indentless: bool = False) -> None:  # noqa: ARG002
         super().increase_indent(flow, False)

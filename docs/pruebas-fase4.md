@@ -25,8 +25,8 @@ solo quedan L3/L4 e identidad.
 | Secrets | `sbi-tls-<nf>` en 5g-cp con `ca.crt`, `tls.crt` y `tls.key`, montados en `/etc/open5gs/tls` | `site.yml` |
 | Config de las NF | `customOpen5gsConfig` completo por NF (reemplaza el fichero del chart) con `default.tls.server` (`scheme: https`, `private_key`, `cert`, `verify_client: true`, `verify_client_cacert`) y `default.tls.client` (`scheme: https`, `cacert`, `client_private_key`, `client_cert`); `advertise` con el FQDN del Service; URIs del SCP y del NRF en `https://` | `templates/open5gs-cp-nf-config-values.yaml.j2` |
 | Sondas | `customLivenessProbe`/`customReadinessProbe` por TCP al 7777 (una sonda HTTP fallaría contra HTTPS con certificado de cliente) | la misma plantilla |
-| Políticas | overlay `<modo>-tls`: el de la Fase 3 sin las reglas `http` del NRF (componente `sbi-tls`) | `cilium-policies/lab/` |
-| Smoke | sale de `sbi-probe` y usa HTTPS con certificado si lo hay | `bootstrap/checks/smoke-control-plane.sh` |
+| Políticas | overlay `<modo>-tls`: el de la Fase 3 sin las reglas `http` del NRF (componente `sbi-tls`) | `k8s/cilium/` |
+| Smoke | sale de `sbi-probe` y usa HTTPS con certificado si lo hay | `scripts/smoke-control-plane.sh` |
 
 Las claves de configuración TLS son las de `configs/open5gs/*.yaml.in` de Open5GS
 v2.7.5. La plantilla también genera el AMF de las redes dedicadas, así que
@@ -51,14 +51,14 @@ Supuestos **no verificados** contra el chart de Gradiant 2.3.4:
 | La config de cada NF de la plantilla no pierde nada de lo que pone el chart | Comparar con `diff` (abajo) |
 | El proceso de Open5GS puede leer la clave con `defaultMode: 0400` (corre como root) | Si corre con otro usuario, subir el modo o usar `fsGroup` |
 
-En el master, con la carpeta de trabajo del playbook (`/tmp/cib46/`):
+En el master, con la carpeta de trabajo del playbook (`/tmp/kcd-lab/`):
 
 ```bash
 CHART=oci://registry-1.docker.io/gradiantcharts/open5gs
 # sin TLS (referencia) y con TLS
-helm template open5gs-cp $CHART --version 2.3.4 -n 5g-cp -f /tmp/cib46/open5gs-values.yaml > /tmp/sin-tls.yaml
-helm template open5gs-cp $CHART --version 2.3.4 -n 5g-cp -f /tmp/cib46/open5gs-values.yaml \
-  -f /tmp/cib46/open5gs-cp-nf-config-values.yaml > /tmp/con-tls.yaml
+helm template open5gs-cp $CHART --version 2.3.4 -n 5g-cp -f /tmp/kcd-lab/open5gs-values.yaml > /tmp/sin-tls.yaml
+helm template open5gs-cp $CHART --version 2.3.4 -n 5g-cp -f /tmp/kcd-lab/open5gs-values.yaml \
+  -f /tmp/kcd-lab/open5gs-cp-nf-config-values.yaml > /tmp/con-tls.yaml
 diff <(grep -A60 'nrf.yaml' /tmp/sin-tls.yaml) <(grep -A60 'nrf.yaml' /tmp/con-tls.yaml)
 grep -nE 'sbi-tls|/etc/open5gs/tls|tcpSocket|httpGet' /tmp/con-tls.yaml | head -40
 grep -n 'name: open5gs-cp-mongodb' /tmp/sin-tls.yaml
