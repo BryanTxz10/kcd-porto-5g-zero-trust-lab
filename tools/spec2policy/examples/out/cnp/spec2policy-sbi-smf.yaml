@@ -27,7 +27,7 @@ spec:
     - fromEndpoints:
         - matchLabels:
             io.kubernetes.pod.namespace: 5g-cp
-            cib46-nf-type: core-nf
+            app.kubernetes.io/instance: open5gs-cp
             app.kubernetes.io/name: nrf
       toPorts:
         - ports:
@@ -40,7 +40,7 @@ spec:
     - fromEndpoints:
         - matchLabels:
             io.kubernetes.pod.namespace: 5g-cp
-            cib46-nf-type: core-nf
+            app.kubernetes.io/instance: open5gs-cp
             app.kubernetes.io/name: pcf
       toPorts:
         - ports:
@@ -53,7 +53,7 @@ spec:
     - fromEndpoints:
         - matchLabels:
             io.kubernetes.pod.namespace: 5g-cp
-            cib46-nf-type: core-nf
+            app.kubernetes.io/instance: open5gs-cp
             app.kubernetes.io/name: scp
       toPorts:
         - ports:

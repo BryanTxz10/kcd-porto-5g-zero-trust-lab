@@ -2,7 +2,7 @@
 
 > Diseño experimental **preregistrable** para re-ejecutar el estudio CIB46 (ZTA
 > incremental sobre núcleo 5G SA cloud-native) corrigiendo de raíz las
-> deficiencias detectadas en `docs/revision-metodologica.md` (RM-01…RM-28).
+> deficiencias detectadas en `legacy/docs/revision-metodologica.md` (RM-01…RM-28).
 >
 > Principio rector: **todo se decide y se escribe ANTES de recolectar datos.**
 > Cada sección indica qué hallazgo RM corrige. La capa de automatización
@@ -390,7 +390,7 @@ testbed. Divulgación responsable si se hallan vulnerabilidades nuevas.
 6. **Consolidación.** Parseo (`data-processing/`) → CSV anonimizados.
 7. **Análisis.** Kruskal-Wallis + Dunn/FDR + rank-biserial + IC; Wilson para TBLOQ.
 8. **Redacción.** Resultados con IC y tamaños de efecto; limitaciones (§8);
-   related work (`docs/related-work-y-gaps.md`, incluye Télécom Paris).
+   related work (`legacy/docs/related-work-y-gaps.md`, incluye Télécom Paris).
 9. **Publicación.** Dataset + DOI; repo con `bootstrap/`.
 
 ---

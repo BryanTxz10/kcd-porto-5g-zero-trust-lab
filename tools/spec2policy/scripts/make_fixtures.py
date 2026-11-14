@@ -41,7 +41,6 @@ def labels(nf: str) -> list[str]:
     return [
         "k8s:app.kubernetes.io/instance=open5gs-cp",
         f"k8s:app.kubernetes.io/name={nf}",
-        "k8s:cib46-nf-type=core-nf",
         f"k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name={NS}",
         "k8s:io.cilium.k8s.policy.cluster=default",
         f"k8s:io.cilium.k8s.policy.serviceaccount=open5gs-cp-{nf}",

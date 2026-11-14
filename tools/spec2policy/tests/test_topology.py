@@ -31,7 +31,7 @@ def test_scp_modelo_d_solo_nnrf_nfm_directo(topo):
 def test_selectores_coinciden_con_cnp_existentes(topo):
     assert topo.peer_selector("amf") == {
         "io.kubernetes.pod.namespace": "5g-cp",
-        "cib46-nf-type": "core-nf",
+        "app.kubernetes.io/instance": "open5gs-cp",
         "app.kubernetes.io/name": "amf",
     }
     assert topo.endpoint_selector("udm") == {"app.kubernetes.io/name": "udm"}

@@ -9,14 +9,16 @@ investigación (desconfianza por defecto también en la cadena de CI/CD).
 
 | Workflow | Archivo | Qué valida | Disparadores |
 |---|---|---|---|
-| **CI — Validación de despliegue** | `.github/workflows/ci.yml` | bash (shellcheck + `bash -n` + `make lint`), YAML (yamllint), Ansible (`--syntax-check` + ansible-lint), Kustomize (`build` de C0–C3), Python (`compileall` + ruff) | push, PR a `main`, manual |
+| **CI — Validación de despliegue** | `.github/workflows/ci.yml` | bash (shellcheck + `bash -n` + `make lint`), YAML (yamllint), Ansible (`--syntax-check` + ansible-lint), Kustomize (`build` de las políticas del lab, MultiNetworkPolicy, Tetragon y las capas de la tesis), Python (`compileall` + ruff), matriz de políticas en los dos modos, spec2policy (ruff + pytest + ejemplos al día) | push, PR a `main`, manual |
 | **Seguridad CI/CD** | `.github/workflows/security.yml` | Secretos (gitleaks), seguridad de los workflows (actionlint + zizmor), misconfiguraciones IaC/K8s (trivy, checkov, kube-linter) | push, PR a `main`, semanal (lunes 06:00 UTC), manual |
 
 Réplica local del pipeline de CI:
 
 ```bash
-make ci              # lint bash + yamllint + kustomize build C0-C3 + python
-make kustomize-check # solo overlays de condición
+make ci              # lint bash + yamllint + kustomize build + python
+make kustomize-check # solo los builds de Kustomize
+make policy-matrix   # matriz de flujos en los dos modos
+make spec2policy-test
 ```
 
 ## Roles de seguridad aplicados (hardening del pipeline)

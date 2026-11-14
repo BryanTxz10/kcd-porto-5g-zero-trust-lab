@@ -10,7 +10,7 @@
 # salvo el UPF. Así no se añade ninguna dependencia nueva y las dos mitades del
 # core quedan siempre en la misma versión de Open5GS.
 #
-# Por qué separado (arquitectura v3, ver docs/arquitectura-v3-planos.md):
+# Por qué separado (arquitectura v3, ver legacy/docs/arquitectura-v3-planos.md):
 #   · 3GPP separa control y usuario (CUPS): el SMF gobierna al UPF por N4 (PFCP)
 #     y cada uno escala y se ubica por su cuenta.
 #   · Los operadores ponen el UPF en el borde, cerca de la radio y de la salida

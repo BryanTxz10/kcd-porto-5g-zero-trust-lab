@@ -1,20 +1,19 @@
-# Guía realista de VMs: cuatro nodos y tres redes en VMware Workstation (Fase 0)
+# VMs y redes en VMware Workstation: cuatro nodos y tres redes
 
-> **Qué cubre:** crear las VMs y dejar el sistema operativo listo para que
-> **Ansible** haga todo lo demás. Aquí no se despliega nada de Kubernetes ni
-> del core 5G: eso sale de `ansible/site.yml` en las fases siguientes.
->
-> **Para quién:** Bryan, reinstalando el lab desde cero para la charla de KCD
-> Porto. Pensado para hacerlo copiando y pegando, en orden.
->
-> **Hipervisor:** VMware Workstation Pro 17 en el laptop. **SO:** Ubuntu Server
-> 22.04.5 LTS (amd64). **Usuario en todas las VMs:** `bryantxz10`.
->
-> **Estado de verificación:** esta guía se escribió sin clúster disponible (el
-> lab anterior está destruido). Los pasos de VMware y netplan siguen la
-> documentación de ambos y la experiencia del lab v2
-> (`docs/guia-lab-desde-cero.md`), pero **no se han vuelto a ejecutar**. Las
-> cosas marcadas con ⚠️ son las que conviene comprobar con más calma.
+Crea las VMs y deja el sistema operativo listo para que Ansible haga todo lo demás.
+Aquí no se despliega nada de Kubernetes ni del core 5G: eso sale de
+`ansible/site.yml` ([`guia-lab-desde-cero.md`](guia-lab-desde-cero.md)). Está
+pensada para seguirse en orden, copiando y pegando.
+
+- **Hipervisor:** VMware Workstation Pro 17.
+- **SO:** Ubuntu Server 22.04.5 LTS (amd64).
+- **Usuario en todas las VMs:** `bryantxz10` en los ejemplos. Si usas otro,
+  sustitúyelo en los comandos y en `ansible/inventory/hosts.ini`.
+
+> **Estado.** Los pasos siguen la documentación de VMware y de netplan y la
+> experiencia con la versión anterior del lab (tres VMs y una red), pero esta
+> topología de cuatro VMs y tres redes no se ha vuelto a montar desde cero. Lo
+> marcado con ⚠️ es lo que conviene comprobar con más calma.
 
 ---
 
@@ -131,13 +130,34 @@ hacia internet. **Eso lo configura Ansible en la Fase 1**, no esta guía.
    → `ubuntu-22.04.5-live-server-amd64.iso`. No la cambies por 24.04: es la
    versión de referencia de Open5GS 2.7.5 y del lab anterior.
 
-**Red NAT fijada**
+**Red NAT fijada (mgmt)**
 
-La red mgmt es la **VMnet8 (NAT)** fijada a `192.168.100.0/24`, con gateway y
-DNS en `192.168.100.2` y DHCP solo en `.128-.254`. Si no lo hiciste ya, sigue
-la sección 2.1 de `docs/guia-lab-desde-cero.md` (Edit → Virtual Network
-Editor). Comprueba en PowerShell con `ipconfig` que *VMware Network Adapter
-VMnet8* tiene la IP `192.168.100.1`.
+La red mgmt es la **VMnet8 (NAT)**: las VMs salen a internet a través del laptop y
+el laptop las ve directamente, con IPs que no cambian aunque cambies de red (casa,
+oficina, la sala de la conferencia). *Bridged* no sirve: en muchas redes no dan IP a
+VMs y, si lo hacen, las IPs cambian con la red y el clúster se rompe. Las IPs van
+fijas porque k3s registra cada nodo con su IP.
+
+VMware elige la subred NAT al azar al instalarse. Para que las IPs de esta guía
+sirvan tal cual:
+
+1. **Edit → Virtual Network Editor → Change Settings** (pide permisos de
+   administrador en Windows).
+2. Selecciona **VMnet8** (tipo *NAT*) y pon **Subnet IP** `192.168.100.0`,
+   **Subnet mask** `255.255.255.0`. Deja marcados *Connect a host virtual adapter
+   to this network* y *Use local DHCP service…*.
+3. **NAT Settings…**: **Gateway IP** `192.168.100.2`.
+4. **DHCP Settings…**: rango `192.168.100.128` a `192.168.100.254`, para que no
+   choque con las IPs fijas (.10 a .13).
+5. **Apply** y **OK**.
+
+Esto cambia la red NAT de todas tus VMs de VMware. Comprueba en el laptop
+(`ipconfig` en Windows, `ip -br a | grep vmnet8` en Linux) que el adaptador VMnet8
+tiene `192.168.100.1`.
+
+VirtualBox no sirve tal cual (su NAT no deja que el laptop vea las VMs sin reenvío
+de puertos), y en Mac con chip Apple las imágenes amd64 de UERANSIM y Open5GS no
+corren.
 
 ---
 
@@ -210,7 +230,7 @@ Enciende la VM. Clic dentro de la ventana para capturar el teclado
    LVM group* (con LVM solo usa la mitad del disco para `/`). **Done** →
    **Done** → **Continue**.
 10. **Profile setup:**
-    - *Your name:* `Bryan`
+    - *Your name:* el que quieras
     - *Your server's name:* `node-master`
     - *Pick a username:* **`bryantxz10`**
     - *Password:* la que quieras (será la de `sudo`). → **Done**.
@@ -603,7 +623,7 @@ arquitectura:
 | Redes necesarias | mgmt, access, n6 | **solo mgmt** |
 | NIC en workers | mgmt + access (+ n6 en worker2) | mgmt; `access`/`n6` pueden existir, nadie las usa |
 | dn-gw | router N6, grupo `[dn]` del inventario | **no hace falta**: puedes dejarla apagada |
-| N2, N3, N6 | por ipvlan sobre access/n6 (Multus) | por la red de pods de Cilium, como en el lab v2 |
+| N2, N3, N6 | por ipvlan sobre access/n6 (Multus) | por la red de pods de Cilium |
 | Lo que ve Cilium/Hubble | SBI, N4, DNS (lo de mgmt) | todo, incluidos N2/N3 |
 
 Con `false` **no tienes que deshacer nada** de esta guía: las NIC sin IP no
@@ -645,7 +665,7 @@ workers
   fijas de AMF, gNB, UPF, dn-gw, pool de UE) y en `host_vars/<vm>.yml`
   (nombre de las NIC por nodo; en dn-gw, la IP de n6 y la ruta al pool).
 
-Desde el nodo de control (el propio `node-master`, como en el lab v2, o tu
+Desde el nodo de control (el propio `node-master`, o tu
 laptop con WSL2; ver `ansible/README-ansible.md`):
 
 ```bash

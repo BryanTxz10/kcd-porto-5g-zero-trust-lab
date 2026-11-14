@@ -43,7 +43,7 @@ un trabajo "de verificación" en uno "de caracterización", que es lo publicable
 ## 3. Debilidades del trabajo como paper (contra) y cómo neutralizarlas
 
 Ordenadas por lo que más daño hace en revisión. Las que vienen de la revisión
-metodológica previa (`docs/revision-metodologica.md`) se referencian como RM-xx.
+metodológica previa (`legacy/docs/revision-metodologica.md`) se referencian como RM-xx.
 
 | # | Debilidad | Severidad en revisión | Mitigación para el paper |
 |---|---|---|---|

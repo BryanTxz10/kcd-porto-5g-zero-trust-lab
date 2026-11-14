@@ -18,7 +18,7 @@
     # Modo warn+audit (NO enforce): surface de violaciones sin romper el attach.
     # El gNB usa NET_ADMIN y el UE es privileged, así que 'enforce=baseline'
     # rechazaría esos pods. Cuando muevas el UE a 5g-ue (privileged) podrás
-    # subir 5g-cp/5g-db a 'enforce=baseline'. Ver docs/arquitectura-v2-hardening.md.
+    # subir 5g-cp/5g-db a 'enforce=baseline'. Ver legacy/docs/arquitectura-v2-hardening.md.
     - name: "PSS: avisar/auditar baseline en 5g-cp y 5g-ran"
       ansible.builtin.command: >
         kubectl label ns {{ item }}
@@ -49,7 +49,7 @@
     - name: "Recordatorios de hardening (otros puntos)"
       ansible.builtin.debug:
         msg:
-          - "Cifrado WireGuard entre nodos: condición aparte -> DEPLOY_ENCRYPTION=1 (bootstrap/20-cilium.sh) o group_vars node_encryption."
-          - "Guarda de admisión (identidad NF + gNB): kubectl apply -f ../bootstrap/admission/kyverno-identity-guard.yaml (requiere Kyverno)."
-          - "Condiciones endurecidas: make condition C=c1 (incluye egress, N6, N3/N4, MongoDB restringido)."
+          - "Cifrado WireGuard entre nodos: node_encryption: true en group_vars y --tags cilium,policies."
+          - "Admisión a las redes dedicadas: la aplica site.yml con deploy_multus: true (tag admission)."
+          - "Políticas de Cilium del lab: make policies (o --tags policies en site.yml)."
       tags: [pss, taint]

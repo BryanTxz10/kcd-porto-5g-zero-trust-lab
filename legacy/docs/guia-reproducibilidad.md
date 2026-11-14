@@ -226,4 +226,4 @@ make smoke C=C0               # verifica plano de control
 - [ ] Consolidados anonimizados publicados (idealmente con DOI).
 - [ ] Glosario de métricas (IDR, OVERHEAD-L7, TBANA, TBOC) con fórmulas.
 
-Ver `docs/revision-metodologica.md` para el detalle de cada punto (RM-xx).
+Ver `legacy/docs/revision-metodologica.md` para el detalle de cada punto (RM-xx).

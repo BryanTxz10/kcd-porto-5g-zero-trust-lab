@@ -8,7 +8,7 @@
 > seguimiento documentado (§3), tal como la propia review los difiere.
 >
 > **Actualización (arquitectura v3):** el split del UPF a `5g-up` ya está hecho.
-> Ver `docs/arquitectura-v3-planos.md`. MongoDB sigue en `5g-cp`.
+> Ver `legacy/docs/arquitectura-v3-planos.md`. MongoDB sigue en `5g-cp`.
 
 ## 1. Mapa hallazgo → cambio
 

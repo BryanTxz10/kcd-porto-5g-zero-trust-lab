@@ -1,8 +1,9 @@
 """Generador de CiliumNetworkPolicy con reglas http por método y path.
 
 Una política de ingress por NF (productores y SCP), con el mismo criterio de
-selección que cilium-policies/c2 y c3: el par se identifica por namespace,
-label de identidad (cib46-nf-type=core-nf) y nombre de NF (app.kubernetes.io/name).
+selección que cilium-policies/lab/base: el par se identifica por namespace,
+release del chart (app.kubernetes.io/instance=open5gs-cp) y nombre de NF
+(app.kubernetes.io/name).
 
 Modos:
   standard  -> todo lo que el estándar permite a los consumidores de la tabla.

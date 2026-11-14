@@ -1,6 +1,6 @@
 # Related work y análisis de brechas (sobre tu biblioteca de Drive)
 
-> Complemento de `docs/paper-posicionamiento.md`, ahora con tu **corpus real**
+> Complemento de `legacy/docs/paper-posicionamiento.md`, ahora con tu **corpus real**
 > (carpeta `Material bibliografico/Papers` + `Trabajos de Grado`, ~42 PDFs + 5
 > tesis, leídos vía el conector de Google Drive).
 >
@@ -192,7 +192,7 @@ vector). **Ahí está tu paper.**
 ## 5. Referencias incorporadas (los 4 que faltaban) — fichas y enlaces
 
 Estos 4 trabajos son centrales para tu related work. Ya están incorporados al
-`.bib` del repo (`docs/referencias.bib`) y como entradas de related work aquí
+`.bib` del repo (`legacy/docs/referencias.bib`) y como entradas de related work aquí
 abajo.
 
 > **Estado de los PDF (actualizado):** me pasaste 4 PDF por el chat y los **leí a
@@ -294,6 +294,6 @@ abajo.
    no como claim técnico (D4).
 5. Abrir y clasificar los archivos de nombre opaco (§1) para no perder material.
 
-> Todo esto se integra con `docs/paper-posicionamiento.md` (pros/contras P1–P8,
-> D1–D8) y `docs/revision-metodologica.md` (RM-01…RM-28). Juntos forman el dossier
+> Todo esto se integra con `legacy/docs/paper-posicionamiento.md` (pros/contras P1–P8,
+> D1–D8) y `legacy/docs/revision-metodologica.md` (RM-01…RM-28). Juntos forman el dossier
 > para convertir la tesis en paper.

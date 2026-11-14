@@ -1,7 +1,7 @@
 # Condición C1 — microsegmentación L3/L4, ENDURECIDA (Perfil A).
 #
-# Cambios vs v1 (ver docs/arquitectura-v2-hardening.md y
-# docs/arquitectura-v3-planos.md):
+# Cambios vs v1 (ver legacy/docs/arquitectura-v2-hardening.md y
+# legacy/docs/arquitectura-v3-planos.md):
 #   + default-deny REAL de ingress en 5g-cp; sustituye a c1/01-deny-ran-to-cp,
 #     que en Cilium era un allow de todo 5g-ran
 #   + egress default-deny en 5g-cp, 5g-ran y 5g-up (hallazgo 2)
