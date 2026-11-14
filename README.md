@@ -25,7 +25,8 @@ de un núcleo 5G SA open source desplegado sobre Kubernetes.
    [`docs/pruebas-fase2.md`](docs/pruebas-fase2.md).
 3. **Giro 2 — mTLS te deja ciego.** Al cifrar la SBI con **mTLS**, la política L7
    basada en inspección HTTP se queda sin visibilidad: ya no puede decidir por método
-   ni por ruta.
+   ni por ruta. Interruptor `sbi_tls`; demo con `make demo-l7-ciega`. Pruebas:
+   [`docs/pruebas-fase4.md`](docs/pruebas-fase4.md).
 4. **Respuesta 1 — spec-as-policy.** Derivar la política directamente de la
    especificación 3GPP de la SBI, para autorizar por identidad y contrato de API en
    lugar de por inspección de paquetes.
@@ -106,7 +107,8 @@ por modo (`cilium-policies/lab/`):
 | Default deny de ingress y egress, SBI solo entre identidades de NF, NRF con L7, N4 solo SMF→UPF, MongoDB restringido, 5g-cp sin `world`, RLS dentro de 5g-ran | ✔ | ✔ |
 | N2, N3 y salida del UPF a `world` | en Cilium | por Multus (Fase 2); el UPF no tiene egress en la red de pods |
 
-El playbook aplica el overlay del modo al final; a mano, `make policies`. Sin
+El playbook aplica el overlay del modo al final; a mano, `make policies`. Con
+`sbi_tls: true` se aplica la variante `-tls`, sin las reglas L7 (Fase 4). Sin
 clúster, `make policy-matrix` evalúa los flujos legítimos y de ataque en los dos
 modos (aproximación L3/L4; también en CI). Cifrado entre nodos con WireGuard:
 `node_encryption: true`. Pruebas: [`docs/pruebas-fase3.md`](docs/pruebas-fase3.md).

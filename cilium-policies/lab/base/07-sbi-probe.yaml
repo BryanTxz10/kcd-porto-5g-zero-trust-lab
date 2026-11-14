@@ -1,0 +1,25 @@
+# Pod de prueba de la SBI (bootstrap/manifests/sbi-probe.yaml): solo llega al
+# NRF y solo para GET de Nnrf_NFDiscovery. Cualquier otra petición (p. ej.
+# registrar o borrar una NF) recibe 403 del proxy de Cilium... mientras la
+# SBI vaya en claro. Con mTLS (overlays *-tls) el componente sbi-tls quita
+# las reglas http: queda solo L3/L4 y la ruta ya no se puede inspeccionar.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: sbi-probe-a-nrf
+  namespace: 5g-cp
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: nrf
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/name: sbi-probe
+      toPorts:
+        - ports:
+            - { port: "7777", protocol: TCP }
+          rules:
+            http:
+              - { method: GET, path: "/nnrf-disc/v1/nf-instances" }

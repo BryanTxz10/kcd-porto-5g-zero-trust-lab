@@ -1,0 +1,18 @@
+# Componente sbi-tls (Fase 4, sbi_tls: true): con mTLS en la SBI el proxy L7
+# de Cilium no puede leer método ni ruta, y una regla http sobre un flujo TLS
+# no deja pasar el tráfico legítimo. Se quitan las reglas http del NRF: queda
+# solo L3/L4 por identidad. Es el "giro 2" de la charla: L7 queda ciega.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+labels:
+  - pairs:
+      kcd.io/sbi-tls: "true"
+patches:
+  - target: { group: cilium.io, version: v2, kind: CiliumNetworkPolicy, name: nrf-sbi-l7 }
+    patch: |-
+      - op: remove
+        path: /spec/ingress/0/toPorts/0/rules
+  - target: { group: cilium.io, version: v2, kind: CiliumNetworkPolicy, name: sbi-probe-a-nrf }
+    patch: |-
+      - op: remove
+        path: /spec/ingress/0/toPorts/0/rules

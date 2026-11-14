@@ -1,0 +1,48 @@
+#!/bin/bash
+# sbi-pki.sh — generado por Ansible (sbi_tls: true). Idempotente.
+# CA propia del lab y un certificado por NF para el mTLS de la SBI. Todo se
+# genera aquí, en el master ({{ sbi_tls_dir }}, solo root); nada va al repo.
+# Si un certificado ya existe y sigue firmado por la CA, no se toca.
+#
+# SAN de cada NF: los nombres de su Service (<release>-<nf>-sbi), que son los
+# que usan las URI de la SBI y el 'advertise' de su config. EKU servidor y
+# cliente: cada NF es las dos cosas.
+set -euo pipefail
+umask 077
+DIR="{{ sbi_tls_dir }}"
+DAYS="{{ sbi_tls_days }}"
+mkdir -p "$DIR"
+cd "$DIR"
+
+if [ ! -s ca.key ] || [ ! -s ca.crt ]; then
+  openssl req -x509 -newkey rsa:2048 -nodes -sha256 -days "$DAYS" \
+    -keyout ca.key -out ca.crt -subj "/O=kcd-porto-lab/CN=kcd-lab-sbi-ca" \
+    -addext "basicConstraints=critical,CA:TRUE" \
+    -addext "keyUsage=critical,keyCertSign,cRLSign"
+  echo "nuevo: ca"
+fi
+
+emitir() { # emitir <nombre> <CN> <SAN...>
+  local name="$1" cn="$2"; shift 2
+  if [ -s "$name.crt" ] && openssl verify -CAfile ca.crt "$name.crt" >/dev/null 2>&1; then
+    return 0
+  fi
+  local san; san=$(printf 'DNS:%s,' "$@"); san="${san%,}"
+  openssl req -newkey rsa:2048 -nodes -sha256 -keyout "$name.key" -out "$name.csr" \
+    -subj "/O=kcd-porto-lab/CN=$cn"
+  printf 'subjectAltName=%s\nbasicConstraints=CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth,clientAuth\n' \
+    "$san" > "$name.ext"
+  openssl x509 -req -in "$name.csr" -CA ca.crt -CAkey ca.key -CAcreateserial \
+    -sha256 -days "$DAYS" -extfile "$name.ext" -out "$name.crt"
+  rm -f "$name.csr" "$name.ext"
+  echo "nuevo: $name"
+}
+
+{% for nf in sbi_nfs %}
+{% set svc = open5gs_release ~ '-' ~ nf ~ '-sbi' %}
+emitir {{ nf }} {{ svc }}.{{ ns_cp }}.svc.cluster.local \
+  {{ svc }} {{ svc }}.{{ ns_cp }} {{ svc }}.{{ ns_cp }}.svc {{ svc }}.{{ ns_cp }}.svc.cluster.local
+{% endfor %}
+# Pod de prueba de la SBI (bootstrap/manifests/sbi-probe.yaml): solo cliente,
+# pero firmado por la misma CA, como lo estaría una NF comprometida.
+emitir sbi-probe sbi-probe.{{ ns_cp }} sbi-probe.{{ ns_cp }}.svc.cluster.local

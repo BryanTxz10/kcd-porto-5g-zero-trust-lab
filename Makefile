@@ -34,18 +34,22 @@ condition: ## Aplica una capa de política con Kustomize (uso: make condition C=
 
 # ---- Verificación (RM-01: plano de control, no ICMP) -----------------------
 .PHONY: smoke
-smoke: ## Prueba de humo del plano de control (uso: make smoke C=C1)
+smoke: ## Prueba de humo: registro del UE + SBI desde sbi-probe (claro o mTLS)
 	bash bootstrap/checks/smoke-control-plane.sh $(C)
 
 # Modo de las políticas del lab: el de ansible/group_vars/all.yml salvo que
 # se pase MODE=una-red|multus.
-MODE ?= $(shell grep -qE '^deploy_multus:[[:space:]]*true' ansible/group_vars/all.yml && echo multus || echo una-red)
+MODE ?= $(shell grep -qE '^deploy_multus:[[:space:]]*true' ansible/group_vars/all.yml && echo multus || echo una-red)$(shell grep -qE '^sbi_tls:[[:space:]]*true' ansible/group_vars/all.yml && echo -tls)
 
 .PHONY: policies
-policies: ## Aplica las políticas de Cilium del lab (MODE=una-red|multus; por defecto, según deploy_multus)
+policies: ## Aplica las políticas de Cilium del lab (MODE=una-red|multus[-tls]; por defecto, según deploy_multus y sbi_tls)
 	kubectl apply -k cilium-policies/lab/$(MODE) --prune -l kcd.io/policy-set=lab \
 	  --prune-allowlist=cilium.io/v2/CiliumNetworkPolicy
 	kubectl get cnp -A -l kcd.io/policy-set=lab
+
+.PHONY: demo-l7-ciega
+demo-l7-ciega: ## Fase 4: la misma petición no autorizada al NRF (403 por L7 en claro; con mTLS, L7 ciega)
+	bash bootstrap/checks/demo-l7-ciega.sh
 
 .PHONY: policy-matrix
 policy-matrix: ## Matriz de flujos en los dos modos (una-red y multus), sin clúster (aproximación L3/L4)
@@ -68,7 +72,7 @@ kustomize-check: ## Valida que los overlays Kustomize C0-C3 y las MultiNetworkPo
 	  kustomize build --load-restrictor=LoadRestrictionsNone \
 	    cilium-policies/conditions/$$c >/dev/null && echo "ok  $$c"; \
 	done
-	@for d in cilium-policies/lab/una-red cilium-policies/lab/multus multinetwork-policies; do \
+	@for d in cilium-policies/lab/una-red cilium-policies/lab/multus cilium-policies/lab/una-red-tls cilium-policies/lab/multus-tls multinetwork-policies; do \
 	  echo "== build $$d =="; \
 	  kustomize build $$d >/dev/null && echo "ok  $$d"; \
 	done

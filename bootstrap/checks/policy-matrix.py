@@ -67,6 +67,7 @@ def eps():
     e["mongodb"] = ep("5g-cp", "mongodb", **cp)
     e["populate"] = ep("5g-cp", "open5gs", **{"app.kubernetes.io/component": "populate"})
     e["impostor"] = ep("5g-cp", "nf-impostor")  # pod en 5g-cp sin identidad de NF
+    e["probe"] = ep("5g-cp", "sbi-probe")  # pod de prueba de la SBI (Fase 4)
     e["upf"] = ep("5g-up", "upf", **{"app.kubernetes.io/instance": "open5gs-up"})
     e["gnb"] = ep("5g-ran", "ueransim-gnb")
     e["ue"] = ep("5g-ran", "ueransim-ue")
@@ -163,6 +164,8 @@ LEGIT = [(a, b, 7777, "TCP", "ok", "ok") for a, b in SBI] + [
     ("smf", "dns", 53, "UDP", "ok", "ok"),
     ("gnb", "dns", 53, "UDP", "ok", "ok"),
     ("ue", "dns", 53, "UDP", "ok", "ok"),
+    ("probe", "nrf", 7777, "TCP", "ok", "ok"),
+    ("probe", "dns", 53, "UDP", "ok", "ok"),
 ]
 ATTACK = [
     (a, b, p, pr, "drop", "drop")
@@ -190,6 +193,9 @@ ATTACK = [
         ("amf", "apiserver", 6443, "TCP"),
         ("amf", "upf", 8805, "UDP"),
         ("bsf", "mongodb", 27017, "TCP"),
+        ("probe", "udm", 7777, "TCP"),
+        ("probe", "mongodb", 27017, "TCP"),
+        ("probe", "world", 443, "TCP"),
     ]
 ]
 

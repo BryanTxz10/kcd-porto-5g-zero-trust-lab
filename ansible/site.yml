@@ -767,6 +767,45 @@
       when: deploy_multus | bool
       tags: [open5gs, multus]
 
+    # Config completa de las NF (customOpen5gsConfig): el AMF si hay Multus o
+    # TLS; el resto de NF solo con TLS. Ver la plantilla.
+    - name: "Generar la config de las NF (redes dedicadas y/o mTLS)"
+      ansible.builtin.template:
+        src: templates/open5gs-cp-nf-config-values.yaml.j2
+        dest: "{{ work_dir }}/open5gs-cp-nf-config-values.yaml"
+        mode: "0644"
+      when: (deploy_multus | bool) or (sbi_tls | bool)
+      tags: [open5gs, multus, tls]
+
+    # ---------- Fase 4: PKI de la SBI (CA propia + un certificado por NF) ----------
+    - name: "Fase 4: certificados de la SBI"
+      when: sbi_tls | bool
+      tags: [open5gs, tls]
+      block:
+        - name: "Script de la PKI de la SBI"
+          ansible.builtin.template:
+            src: templates/sbi-pki.sh.j2
+            dest: /usr/local/sbin/kcd-sbi-pki.sh
+            mode: "0700"
+
+        - name: "Generar la CA y los certificados que falten ({{ sbi_tls_dir }})"
+          ansible.builtin.command: /usr/local/sbin/kcd-sbi-pki.sh
+          register: sbi_pki
+          changed_when: "'nuevo:' in sbi_pki.stdout"
+
+        - name: "Secret sbi-tls-<nf> con la CA, el certificado y la clave"
+          ansible.builtin.shell: |
+            set -o pipefail
+            kubectl -n {{ ns_cp }} create secret generic sbi-tls-{{ item }} \
+              --from-file=ca.crt={{ sbi_tls_dir }}/ca.crt \
+              --from-file=tls.crt={{ sbi_tls_dir }}/{{ item }}.crt \
+              --from-file=tls.key={{ sbi_tls_dir }}/{{ item }}.key \
+              --dry-run=client -o yaml | kubectl apply -f -
+          args: { executable: /bin/bash }
+          loop: "{{ sbi_nfs + ['sbi-probe'] }}"
+          register: sbi_secrets
+          changed_when: "'configured' in sbi_secrets.stdout or 'created' in sbi_secrets.stdout"
+
     - name: "Anotar la IP actual del AMF (para saber si hay que reiniciar la RAN)"
       ansible.builtin.shell: >
         kubectl -n {{ ns_cp }} get pod -l app.kubernetes.io/name=amf
@@ -822,9 +861,45 @@
         --namespace {{ ns_cp }}
         -f {{ work_dir }}/open5gs-values.yaml
         {% if deploy_multus | bool %}-f {{ work_dir }}/open5gs-cp-multus-values.yaml{% endif %}
+        {% if (deploy_multus | bool) or (sbi_tls | bool) %}-f {{ work_dir }}/open5gs-cp-nf-config-values.yaml{% endif %}
         --wait --timeout 15m
       changed_when: true
       tags: [open5gs]
+
+    # Un Secret nuevo no reinicia los pods que lo montan.
+    - name: "Fase 4: reiniciar las NF si cambiaron los certificados"
+      ansible.builtin.shell: |
+        kubectl -n {{ ns_cp }} rollout restart deployment -l app.kubernetes.io/instance={{ open5gs_release }}
+        kubectl -n {{ ns_cp }} rollout status deployment -l app.kubernetes.io/instance={{ open5gs_release }} --timeout=600s
+      when:
+        - sbi_tls | bool
+        - (sbi_pki is changed) or (sbi_secrets is changed)
+      changed_when: true
+      tags: [open5gs, tls]
+
+    # Pod de prueba de la SBI: el smoke y la demo de la Fase 4 salen de aquí,
+    # no de dentro del AMF (en la Fase 6 Tetragon mata las herramientas de red
+    # que se ejecuten en el AMF).
+    - name: "Copiar y aplicar el pod de prueba de la SBI (sbi-probe)"
+      ansible.builtin.copy:
+        src: "{{ repo_root }}/bootstrap/manifests/sbi-probe.yaml"
+        dest: "{{ work_dir }}/sbi-probe.yaml"
+        mode: "0644"
+      tags: [open5gs, tls]
+
+    - name: "Aplicar sbi-probe.yaml"
+      ansible.builtin.command: "kubectl apply -f {{ work_dir }}/sbi-probe.yaml"
+      register: probe_apply
+      changed_when: "'configured' in probe_apply.stdout or 'created' in probe_apply.stdout"
+      tags: [open5gs, tls]
+
+    - name: "Reiniciar sbi-probe si cambió su certificado"
+      ansible.builtin.command: "kubectl -n {{ ns_cp }} rollout restart deployment/sbi-probe"
+      when:
+        - sbi_tls | bool
+        - sbi_secrets is changed
+      changed_when: true
+      tags: [open5gs, tls]
 
     - name: "Comprobar que el SMF apunta al UPF de {{ ns_up }} (N4)"
       ansible.builtin.shell: >
@@ -975,7 +1050,7 @@
       when: apply_cilium_policies | bool
       tags: [policies]
       vars:
-        policy_mode: "{{ 'multus' if (deploy_multus | bool) else 'una-red' }}"
+        policy_mode: "{{ ('multus' if (deploy_multus | bool) else 'una-red') ~ ('-tls' if (sbi_tls | bool) else '') }}"
       block:
         - name: "Copiar cilium-policies/lab al master"
           ansible.builtin.copy:
@@ -1012,8 +1087,10 @@
     - name: "Mensaje final"
       ansible.builtin.debug:
         msg: >
-          Testbed desplegado en modo {{ 'redes dedicadas (Multus)' if (deploy_multus | bool) else 'plan B (una red)' }}.
+          Testbed desplegado en modo {{ 'redes dedicadas (Multus)' if (deploy_multus | bool) else 'plan B (una red)' }},
+          SBI {{ 'con mTLS' if (sbi_tls | bool) else 'en claro' }}.
           Pruebas: docs/pruebas-fase1.md (redes), docs/pruebas-fase2.md (admisión
-          y MultiNetworkPolicy), docs/pruebas-fase3.md (Cilium). Matriz sin
-          clúster: make policy-matrix.
+          y MultiNetworkPolicy), docs/pruebas-fase3.md (Cilium),
+          docs/pruebas-fase4.md (mTLS). Smoke: make smoke. Matriz sin clúster:
+          make policy-matrix.
       tags: [always]
