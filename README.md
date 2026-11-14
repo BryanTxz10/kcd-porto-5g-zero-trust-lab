@@ -19,7 +19,10 @@ de un núcleo 5G SA open source desplegado sobre Kubernetes.
 2. **Giro 1 — lo que el CNI no ve.** El radio (N2/N3) y la salida a internet del UPF
    (N6) viajan por redes dedicadas con **Multus**; esas interfaces quedan fuera del
    alcance del CNI, así que la política que creías total no las cubre.
-   Despliegue y pruebas: [`docs/pruebas-fase1.md`](docs/pruebas-fase1.md).
+   Quién se conecta a la red de acceso pasa a ser una decisión de **admisión**
+   (Kyverno), con MultiNetworkPolicy en esas interfaces. Pruebas:
+   [`docs/pruebas-fase1.md`](docs/pruebas-fase1.md) y
+   [`docs/pruebas-fase2.md`](docs/pruebas-fase2.md).
 3. **Giro 2 — mTLS te deja ciego.** Al cifrar la SBI con **mTLS**, la política L7
    basada en inspección HTTP se queda sin visibilidad: ya no puede decidir por método
    ni por ruta.
@@ -55,6 +58,7 @@ de un núcleo 5G SA open source desplegado sobre Kubernetes.
 ├── ansible/             # Despliegue declarativo con Ansible (recomendado) + guía desde cero
 ├── bootstrap/           # Despliegue con bash (respaldo) y checks del plano de control
 ├── cilium-policies/     # CiliumNetworkPolicy por capa + overlays Kustomize (conditions/)
+├── multinetwork-policies/ # MultiNetworkPolicy de las redes dedicadas access y n6 (Fase 2)
 ├── helm-values/         # values.yaml del chart Open5GS (Gradiant)
 ├── attack-scripts/      # Scripts de los vectores de ataque (movimiento lateral, spoofing, flood)
 ├── spire-config/        # SPIRE autónomo de la v1 (legado; en lab v2 SPIRE lo instala Cilium)

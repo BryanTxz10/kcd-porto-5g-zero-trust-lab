@@ -579,6 +579,143 @@
       changed_when: "'configured' in nads_apply.stdout or 'created' in nads_apply.stdout"
       tags: [multus]
 
+    # ---------- Fase 2: admisión a las redes dedicadas (Kyverno) ----------
+    - name: "Fase 2: admisión con Kyverno"
+      when: deploy_multus | bool
+      tags: [admission, multus]
+      block:
+        - name: "Añadir repo Helm de Kyverno"
+          ansible.builtin.command: "helm repo add kyverno https://kyverno.github.io/kyverno/"
+          register: kyverno_repo
+          changed_when: "'has been added' in kyverno_repo.stdout"
+          failed_when: kyverno_repo.rc != 0 and 'already exists' not in kyverno_repo.stderr
+
+        - name: "Instalar/actualizar Kyverno (chart {{ kyverno_chart_version }})"
+          ansible.builtin.command: >
+            helm upgrade --install kyverno kyverno/kyverno
+            --version {{ kyverno_chart_version }}
+            --namespace kyverno --create-namespace
+            --wait --timeout 10m
+          changed_when: true
+
+        # Solo el documento de redes dedicadas: el de la tesis
+        # (cib46-identity-guard) necesita ajustar su allowlist a mano.
+        - name: "Leer la política de admisión de redes dedicadas"
+          ansible.builtin.set_fact:
+            multus_guard: >-
+              {{ lookup('ansible.builtin.file', repo_root + '/bootstrap/admission/kyverno-identity-guard.yaml')
+                 | from_yaml_all | selectattr('metadata.name', 'equalto', 'kcd-multus-network-guard') | first }}
+
+        # Las IP de la política están escritas en el YAML (para poder aplicarlo
+        # a mano). Si group_vars cambia y la política no, se rechazarían los
+        # pods legítimos: mejor fallar aquí.
+        - name: "Las IP de la política coinciden con group_vars"
+          ansible.builtin.assert:
+            that:
+              - (multus_guard | to_json) is search(item | regex_escape)
+            fail_msg: "{{ item }} no aparece en kcd-multus-network-guard; actualiza bootstrap/admission/kyverno-identity-guard.yaml"
+            quiet: true
+          loop:
+            - "{{ amf_n2_ip }}/{{ access_cidr.split('/')[1] }}"
+            - "{{ gnb_access_ip }}/{{ access_cidr.split('/')[1] }}"
+            - "{{ upf_n3_ip }}/{{ access_cidr.split('/')[1] }}"
+            - "{{ upf_n6_ip }}/{{ n6_cidr.split('/')[1] }}"
+
+        - name: "Escribir la política con el modo elegido ({{ kyverno_multus_guard_action }})"
+          ansible.builtin.copy:
+            content: "{{ multus_guard | combine({'spec': {'validationFailureAction': kyverno_multus_guard_action}}, recursive=true) | to_nice_yaml(indent=2) }}"
+            dest: "{{ work_dir }}/kcd-multus-network-guard.yaml"
+            mode: "0644"
+
+        - name: "Aplicar kcd-multus-network-guard"
+          ansible.builtin.command: "kubectl apply -f {{ work_dir }}/kcd-multus-network-guard.yaml"
+          register: guard_apply
+          changed_when: "'configured' in guard_apply.stdout or 'created' in guard_apply.stdout"
+
+        - name: "Esperar a que la política esté lista"
+          ansible.builtin.command: "kubectl wait --for=condition=Ready clusterpolicy/kcd-multus-network-guard --timeout=120s"
+          changed_when: false
+
+    # ---------- Fase 2: MultiNetworkPolicy (multi-networkpolicy-iptables) ----------
+    - name: "Fase 2: multi-networkpolicy-iptables"
+      when:
+        - deploy_multus | bool
+        - deploy_multi_networkpolicy | bool
+      tags: [mnp, multus]
+      block:
+        - name: "Descargar el manifiesto de multi-networkpolicy-iptables {{ multi_networkpolicy_version }}"
+          ansible.builtin.get_url:
+            url: "https://raw.githubusercontent.com/k8snetworkplumbingwg/multi-networkpolicy-iptables/{{ multi_networkpolicy_version }}/deploy.yml"
+            dest: "{{ work_dir }}/multi-networkpolicy-iptables.yml"
+            mode: "0644"
+
+        # Ajustes para este clúster: imagen del tag fijado (no :snapshot),
+        # socket de containerd de k3s y plugin ipvlan (por defecto solo
+        # gestiona macvlan).
+        - name: "Fijar la imagen al tag {{ multi_networkpolicy_version }}"
+          ansible.builtin.replace:
+            path: "{{ work_dir }}/multi-networkpolicy-iptables.yml"
+            regexp: '(multi-networkpolicy-iptables):(snapshot|latest)'
+            replace: '\1:{{ multi_networkpolicy_version }}'
+
+        - name: "Socket de containerd de k3s"
+          ansible.builtin.replace:
+            path: "{{ work_dir }}/multi-networkpolicy-iptables.yml"
+            regexp: '/run/containerd/containerd\.sock'
+            replace: '/run/k3s/containerd/containerd.sock'
+
+        - name: "Gestionar interfaces ipvlan (si ya hay --network-plugins)"
+          ansible.builtin.replace:
+            path: "{{ work_dir }}/multi-networkpolicy-iptables.yml"
+            regexp: '--network-plugins=[A-Za-z0-9,-]+'
+            replace: '--network-plugins=ipvlan'
+
+        - name: "¿El manifiesto ya trae --network-plugins?"
+          ansible.builtin.slurp:
+            src: "{{ work_dir }}/multi-networkpolicy-iptables.yml"
+          register: mnp_manifest_pre
+
+        - name: "Gestionar interfaces ipvlan (si no lo trae, tras --host-prefix)"
+          ansible.builtin.replace:
+            path: "{{ work_dir }}/multi-networkpolicy-iptables.yml"
+            regexp: '^(\s+)- "?--host-prefix=([^"\n]+)"?$'
+            replace: '\1- "--host-prefix=\2"\n\1- "--network-plugins=ipvlan"'
+          when: (mnp_manifest_pre.content | b64decode) is not search('--network-plugins=')
+
+        - name: "Leer el manifiesto ajustado"
+          ansible.builtin.slurp:
+            src: "{{ work_dir }}/multi-networkpolicy-iptables.yml"
+          register: mnp_manifest
+
+        # Si el manifiesto de upstream cambió de forma, mejor fallar aquí que
+        # desplegar un daemon que no filtra ipvlan.
+        - name: "El manifiesto tiene los ajustes"
+          ansible.builtin.assert:
+            that:
+              - (mnp_manifest.content | b64decode) is search('--network-plugins=ipvlan')
+              - (mnp_manifest.content | b64decode) is search('/run/k3s/containerd/containerd.sock')
+            fail_msg: "No se pudo ajustar deploy.yml de multi-networkpolicy-iptables; revisa el manifiesto del tag {{ multi_networkpolicy_version }}."
+
+        - name: "Instalar multi-networkpolicy-iptables"
+          ansible.builtin.command: "kubectl apply -f {{ work_dir }}/multi-networkpolicy-iptables.yml"
+          register: mnp_apply
+          changed_when: "'configured' in mnp_apply.stdout or 'created' in mnp_apply.stdout"
+
+        - name: "Existe la CRD MultiNetworkPolicy"
+          ansible.builtin.command: "kubectl get crd multi-networkpolicies.k8s.cni.cncf.io"
+          changed_when: false
+
+        - name: "Copiar las MultiNetworkPolicy"
+          ansible.builtin.copy:
+            src: "{{ repo_root }}/multinetwork-policies/"
+            dest: "{{ work_dir }}/multinetwork-policies/"
+            mode: "0644"
+
+        - name: "Aplicar las MultiNetworkPolicy (access y n6)"
+          ansible.builtin.command: "kubectl apply -k {{ work_dir }}/multinetwork-policies/"
+          register: mnp_policies
+          changed_when: "'configured' in mnp_policies.stdout or 'created' in mnp_policies.stdout"
+
     # ---------- metrics-server ----------
     - name: "Instalar metrics-server"
       ansible.builtin.command: >

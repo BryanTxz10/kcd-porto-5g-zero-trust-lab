@@ -52,12 +52,14 @@ lint: ## Chequeo de sintaxis de todos los scripts bash
 	          cilium-policies/c2/*.sh; do bash -n "$$f" && echo "ok  $$f"; done
 
 .PHONY: kustomize-check
-kustomize-check: ## Valida que los overlays Kustomize C0-C3 construyan
+kustomize-check: ## Valida que los overlays Kustomize C0-C3 y las MultiNetworkPolicy construyan
 	@for c in c0 c1 c2 c3; do \
 	  echo "== build $$c =="; \
 	  kustomize build --load-restrictor=LoadRestrictionsNone \
 	    cilium-policies/conditions/$$c >/dev/null && echo "ok  $$c"; \
 	done
+	@echo "== build multinetwork-policies =="; \
+	  kustomize build multinetwork-policies >/dev/null && echo "ok  multinetwork-policies"
 
 .PHONY: ci
 ci: ## Replica local del pipeline CI (lint bash + yaml + kustomize + python)

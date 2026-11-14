@@ -69,6 +69,25 @@ upf_n6_route_table: 100
 dn_iperf3_port: 5201
 dn_http_port: 8080
 
+# --- Controles de las redes dedicadas (Fase 2, solo con deploy_multus: true) ---
+# Cilium no hace cumplir políticas en las interfaces de Multus. Tres capas:
+#   1) aislamiento L2: los LAN segments de VMware (equivalente a VLAN/VRF);
+#   2) admisión con Kyverno: quién puede pedir 'access'/'n6'
+#      (ClusterPolicy kcd-multus-network-guard en
+#      bootstrap/admission/kyverno-identity-guard.yaml);
+#   3) MultiNetworkPolicy con multi-networkpolicy-iptables (multinetwork-policies/).
+# Kyverno 1.11.4 (chart 3.1.4) soporta Kubernetes 1.25-1.28.
+kyverno_chart_version: "3.1.4"
+# Enforce rechaza; Audit solo registra (útil si la política bloquea algo
+# legítimo la primera vez: kubectl get policyreport -A).
+kyverno_multus_guard_action: "Enforce"
+# multi-networkpolicy-iptables: si no soporta ipvlan o SCTP en tu clúster, pon
+# false y quédate con L2 + admisión (docs/pruebas-fase2.md §4).
+deploy_multi_networkpolicy: true
+# ⚠ VERIFICAR que el tag existe (manifiesto deploy.yml e imagen en ghcr.io):
+#   el playbook falla al descargarlo si no.
+multi_networkpolicy_version: "v0.2.0"
+
 # --- Núcleo 5G (chart Helm de Gradiant, Open5GS 2.7.5) ---
 # El repo towards5gs-helm NO publica un chart de Open5GS (solo free5GC y
 # UERANSIM); los values del repo corresponden al chart de Gradiant.

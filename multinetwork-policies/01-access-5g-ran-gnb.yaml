@@ -1,0 +1,44 @@
+# Red 'access' en 5g-ran: el gNB (10.10.0.20) solo habla con el AMF (NGAP,
+# SCTP 38412 hacia 10.10.0.10) y con el UPF (GTP-U, UDP 2152 con 10.10.0.30).
+# Fase 2, solo con deploy_multus: true.
+apiVersion: k8s.cni.cncf.io/v1beta1
+kind: MultiNetworkPolicy
+metadata:
+  name: access-gnb
+  namespace: 5g-ran
+  annotations:
+    k8s.v1.cni.cncf.io/policy-for: 5g-ran/access
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: ueransim-gnb
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - ipBlock: { cidr: 10.10.0.10/32 }
+      ports:
+        - { protocol: SCTP, port: 38412 }
+    - from:
+        - ipBlock: { cidr: 10.10.0.30/32 }
+      ports:
+        - { protocol: UDP, port: 2152 }
+  egress:
+    - to:
+        - ipBlock: { cidr: 10.10.0.10/32 }
+      ports:
+        - { protocol: SCTP, port: 38412 }
+    - to:
+        - ipBlock: { cidr: 10.10.0.30/32 }
+      ports:
+        - { protocol: UDP, port: 2152 }
+---
+apiVersion: k8s.cni.cncf.io/v1beta1
+kind: MultiNetworkPolicy
+metadata:
+  name: access-default-deny
+  namespace: 5g-ran
+  annotations:
+    k8s.v1.cni.cncf.io/policy-for: 5g-ran/access
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]

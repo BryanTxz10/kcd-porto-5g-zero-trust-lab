@@ -1,0 +1,53 @@
+# deploy-attacker-access.yaml — demo de ADMISIÓN (Fase 2, deploy_multus: true).
+#
+# Dos pods que intentan sentarse en la red de la radio ('access', N2+N3).
+# Ninguno debe llegar a existir: el API server los rechaza con el mensaje de
+# la ClusterPolicy kcd-multus-network-guard
+# (bootstrap/admission/kyverno-identity-guard.yaml).
+#
+#   kubectl apply -f attack-scripts/deploy-attacker-access.yaml
+#   -> admission webhook "validate.kyverno.svc-fail" denied the request ...
+#
+# 1) Atacante declarado: pide 'access' con una IP libre de la red.
+#    Rechazo: no es el gNB, y es un Pod suelto (no lo crea un controlador).
+# 2) Atacante que copia la etiqueta y la IP del gNB.
+#    Rechazo: es un Pod suelto. Copiar etiquetas no basta.
+#
+# Ninguno hace nada si llegara a arrancar: solo duerme. La demo es el rechazo.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: attacker-access
+  namespace: 5g-ran
+  labels:
+    app: attacker-access
+  annotations:
+    k8s.v1.cni.cncf.io/networks: '[{"name": "access", "interface": "access", "ips": ["10.10.0.66/24"]}]'
+spec:
+  nodeSelector: { kubernetes.io/hostname: node-worker2 }
+  automountServiceAccountToken: false
+  containers:
+    - name: attacker
+      image: nicolaka/netshoot:v0.13
+      imagePullPolicy: IfNotPresent
+      command: ["/bin/sh", "-c", "sleep infinity"]
+  restartPolicy: Never
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: attacker-access-gnb-label
+  namespace: 5g-ran
+  labels:
+    app.kubernetes.io/name: ueransim-gnb
+  annotations:
+    k8s.v1.cni.cncf.io/networks: '[{"name": "access", "interface": "access", "ips": ["10.10.0.20/24"]}]'
+spec:
+  nodeSelector: { kubernetes.io/hostname: node-worker2 }
+  automountServiceAccountToken: false
+  containers:
+    - name: attacker
+      image: nicolaka/netshoot:v0.13
+      imagePullPolicy: IfNotPresent
+      command: ["/bin/sh", "-c", "sleep infinity"]
+  restartPolicy: Never

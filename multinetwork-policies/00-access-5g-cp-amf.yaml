@@ -1,0 +1,38 @@
+# Red 'access' en 5g-cp: al AMF (n2, 10.10.0.10) solo le entra NGAP (SCTP
+# 38412) desde el gNB (10.10.0.20) y solo puede hablar con el gNB.
+# La aplica multi-networkpolicy-iptables dentro del netns del pod; Cilium no
+# ve estas interfaces. Fase 2, solo con deploy_multus: true.
+# IPs = ansible/group_vars/all.yml (Ansible comprueba la coincidencia).
+apiVersion: k8s.cni.cncf.io/v1beta1
+kind: MultiNetworkPolicy
+metadata:
+  name: access-amf
+  namespace: 5g-cp
+  annotations:
+    k8s.v1.cni.cncf.io/policy-for: 5g-cp/access
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: amf
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - ipBlock: { cidr: 10.10.0.20/32 }
+      ports:
+        - { protocol: SCTP, port: 38412 }
+  egress:
+    - to:
+        - ipBlock: { cidr: 10.10.0.20/32 }
+---
+# Cualquier otro pod de 5g-cp que llegara a tener 'access' (no debería: lo
+# impide Kyverno) queda sin tráfico en esa red.
+apiVersion: k8s.cni.cncf.io/v1beta1
+kind: MultiNetworkPolicy
+metadata:
+  name: access-default-deny
+  namespace: 5g-cp
+  annotations:
+    k8s.v1.cni.cncf.io/policy-for: 5g-cp/access
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
