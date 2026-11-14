@@ -1,8 +1,15 @@
 # Guía desde cero: desplegar el testbed con Ansible
 
-> **Lab v2:** si partes de VMs vacías (crear VMs, red NAT, IP estática,
-> clonado, SSH), usa **`docs/guia-lab-desde-cero.md`**, que cubre todo de punta
-> a punta y usa este playbook. Este archivo queda como referencia de Ansible.
+> **Lab KCD Porto (Fase 0):** las VMs y el SO (4 VMs, redes mgmt/access/n6,
+> usuario `bryantxz10`, grupo `[dn]` del inventario) se preparan con
+> **`docs/guia-vms-realista.md`**. El inventario de este repo ya corresponde
+> a esa topología.
+>
+> **Lab v2 (anterior):** si partes de VMs vacías (crear VMs, red NAT, IP
+> estática, clonado, SSH), **`docs/guia-lab-desde-cero.md`** cubre todo de
+> punta a punta y usa este playbook. Este archivo queda como referencia de
+> Ansible; los ejemplos con el repo `cib46-zta-5g-core` y el usuario `ubuntu`
+> son de esa época.
 >
 > Para alguien que **programa pero nunca usó Ansible**. Explica qué es, cómo
 > instalarlo, cómo conectar las máquinas y cómo lanzar el despliegue. Sigue los
@@ -113,21 +120,29 @@ Edita **`inventory/hosts.ini`** y pon tus IP y tu usuario:
 
 ```ini
 [master]
-node-master ansible_host=192.168.1.10 ansible_user=ubuntu
+node-master ansible_host=192.168.100.10 ansible_user=bryantxz10
 
 [workers]
-node-worker1 ansible_host=192.168.1.11 ansible_user=ubuntu
-node-worker2 ansible_host=192.168.1.12 ansible_user=ubuntu
+node-worker1 ansible_host=192.168.100.11 ansible_user=bryantxz10
+node-worker2 ansible_host=192.168.100.12 ansible_user=bryantxz10
+
+[dn]
+dn-gw ansible_host=192.168.100.13 ansible_user=bryantxz10
 
 [cluster:children]
 master
 workers
 ```
 
-Revisa **`group_vars/all.yml`**. Con la topología de la guía de lab v2 no
-hace falta cambiar nada (Multus está apagado y el chart de Open5GS ya está
-fijado). Solo si activas `deploy_multus: true` tienes que poner en
-`multus_master_iface` la 2.a interfaz de los workers (míralo con `ip -br a`).
+`[dn]` es el router N6 (`dn-gw`) y queda fuera de `cluster` a propósito: no es
+nodo de k3s. Solo se usa con `deploy_multus: true`; con `false` puedes dejar la
+VM apagada o comentar la línea.
+
+Revisa **`group_vars/all.yml`**. Con `deploy_multus: false` (plan B, una sola
+red) no hace falta cambiar nada. Con `true` (tres redes) las NIC de los
+workers deben llamarse `access`/`n6` (renombradas por MAC en netplan, ver
+`docs/guia-vms-realista.md` §9) y hacen falta los roles de la Fase 1, que
+todavía no existen.
 
 ---
 

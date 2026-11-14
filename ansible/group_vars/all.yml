@@ -1,6 +1,7 @@
 # all.yml — VARIABLES del despliegue (versiones y parámetros).
 # Equivale a bootstrap/versions.env, pero en formato Ansible.
 # Guía paso a paso: docs/guia-lab-desde-cero.md
+# VMs y redes (Fase 0, cuatro VMs): docs/guia-vms-realista.md
 # ================== REVISA / EDITA ==================
 ---
 # --- Kubernetes / CNI ---
@@ -13,12 +14,35 @@ cilium_cli_version: "v0.16.7"
 hubble_cli_version: "v0.13.3"
 metrics_server_version: "v0.7.1"
 
-# Multus (segunda interfaz macvlan para N2). DESACTIVADO en lab v2:
-# N2 va por la red de pods de Cilium para que las políticas C1-C3 lo vean.
-# Si lo activas, los workers necesitan una 2.a NIC y modo promiscuo.
+# --- Interruptor de arquitectura (docs/guia-vms-realista.md) ---
+# deploy_multus: true  -> arquitectura de TRES redes: mgmt (VMnet8), access
+#                         (LAN segment ACCESS, N2+N3) y n6 (LAN segment N6).
+#                         Multus da a AMF, gNB y UPF una interfaz ipvlan L2
+#                         sobre las NIC 'access'/'n6' de los workers, y dn-gw
+#                         hace de router N6. Pendiente de Fase 1: los roles
+#                         de Multus/ipvlan y dn-gw aún no existen; las tareas
+#                         actuales de site.yml (macvlan, NAD n2-net) son las
+#                         del lab v2 y se reescribirán en esa fase.
+# deploy_multus: false -> plan B, UNA sola red: todo viaja por la red de pods
+#                         de Cilium (así lo vieron las políticas C1-C3 en el
+#                         lab v2). Solo hace falta la NIC mgmt; dn-gw no se usa.
 deploy_multus: false
 multus_version: "v4.0.2"
-multus_master_iface: "eth1"
+# Nombre de la NIC padre de la ipvlan en los workers. Netplan la renombra por
+# MAC a 'access' (ver la guía); el nombre real por host está en host_vars/.
+multus_master_iface: "access"
+
+# Plan de direcciones de las redes access y n6 (solo con deploy_multus: true).
+# IP fijas de las NF en la red de acceso y en N6, y pool de los UE. Las usa
+# la Fase 1 (NAD de Multus con IPAM estático, values del UPF y rutas de dn-gw).
+access_cidr: "10.10.0.0/24"
+n6_cidr: "10.10.6.0/24"
+amf_n2_ip: "10.10.0.10"        # AMF (N2), corre en node-worker1
+gnb_access_ip: "10.10.0.20"    # gNB (N2 y N3), corre en node-worker2
+upf_n3_ip: "10.10.0.30"        # UPF lado N3, corre en node-worker2
+upf_n6_ip: "10.10.6.30"        # UPF lado N6, corre en node-worker2
+dn_gw_n6_ip: "10.10.6.1"       # dn-gw, puerta de enlace de N6
+ue_pool_cidr: "10.45.0.0/16"   # pool de IP de los UE (sesiones PDU)
 
 # --- Núcleo 5G (chart Helm de Gradiant, Open5GS 2.7.5) ---
 # El repo towards5gs-helm NO publica un chart de Open5GS (solo free5GC y

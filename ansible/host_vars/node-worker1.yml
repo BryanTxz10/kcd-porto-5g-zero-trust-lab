@@ -1,0 +1,8 @@
+# node-worker1 — sitio central: plano de control 5G (AMF, SMF, NRF...) y MongoDB.
+# NIC: mgmt (VMnet8, con IP = ansible_host) y access (LAN segment ACCESS).
+# Guía: docs/guia-vms-realista.md
+---
+# Interfaz renombrada por MAC en netplan (match.macaddress + set-name).
+# La NIC 'access' NO lleva IP: es solo el padre de la ipvlan L2 que Multus
+# da al AMF (N2, 10.10.0.10 según group_vars/all.yml).
+access_iface: "access"
