@@ -84,19 +84,17 @@ hubble observe --from-label app.kubernetes.io/name=upf --to-identity world --las
 
 ### 3.4 L7 en el NRF
 
-La petición de una operación que no está en TS 29.510 recibe 403 del proxy de
-Cilium, no del NRF:
+Desde el pod de prueba `sbi-probe` (solo puede hacer `GET /nnrf-disc/v1/nf-instances`),
+una ruta distinta recibe 403 del proxy de Cilium, no del NRF:
 
 ```bash
-kubectl -n 5g-cp exec deploy/open5gs-cp-amf -- curl -s --http2-prior-knowledge \
-  -o /dev/null -w '%{http_code}\n' -X POST \
-  http://open5gs-cp-nrf-sbi.5g-cp.svc.cluster.local:7777/nnrf-nfm/v1/nf-instances
-#   403
-hubble observe -n 5g-cp --protocol http --last 20      # se ve método, ruta y el 403
+make demo-l7-ciega        # GET /nnrf-nfm/v1/nf-instances desde sbi-probe
+#   http_code=403
+hubble observe -n 5g-cp --protocol http --last 20      # método, ruta y el 403
 ```
 
-Si el contenedor del AMF no trae `curl`, usa un pod de prueba con las etiquetas de una
-NF (en Fase 6 el AMF no debe ejecutar herramientas de red: Tetragon lo mata).
+No se hace desde dentro del AMF: en la Fase 6 Tetragon mata las herramientas de red
+que se ejecuten en él.
 
 ### 3.5 WireGuard entre nodos (`node_encryption: true`)
 

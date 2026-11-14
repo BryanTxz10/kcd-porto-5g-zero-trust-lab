@@ -1,67 +1,13 @@
 # open5gs-cp-multus-values.yaml — generado por Ansible (deploy_multus: true).
-# Se pasa como SEGUNDO -f al release {{ open5gs_release }}, encima de
-# helm-values/open5gs-values.yaml: solo añade lo que cambia con Multus.
+# Se pasa como -f extra al release {{ open5gs_release }}, encima de
+# helm-values/open5gs-values.yaml.
 #
-# AMF: interfaz n2 = {{ amf_n2_ip }} (red access) y NGAP escuchando ahí.
-# El chart fija ngap en dev: eth0 y no expone la clave, así que se usa
-# customOpen5gsConfig, que REEMPLAZA el amf.yaml entero: por eso va completo,
-# con la SBI y las métricas en eth0 (red de pods) como las pone el chart.
-# Formato de configs/open5gs/amf.yaml.in de Open5GS v2.7.5.
+# AMF: interfaz n2 = {{ amf_n2_ip }} en la red access (anotación de Multus).
+# La config del AMF con NGAP en esa IP está en open5gs-cp-nf-config-values.yaml
+# (templates/open5gs-cp-nf-config-values.yaml.j2), que se genera si
+# deploy_multus o sbi_tls están activos.
 #
-# ⚠ NO VERIFICADO contra el chart 2.3.4. Antes de activar, compara con el
-#   amf.yaml que genera el chart sin este fichero (docs/pruebas-fase1.md §2):
-#   cualquier clave que el chart ponga y aquí falte se pierde.
+# ⚠ NO VERIFICADO contra el chart 2.3.4: 'amf.podAnnotations'.
 amf:
   podAnnotations:
     k8s.v1.cni.cncf.io/networks: '[{"name": "access", "interface": "n2", "ips": ["{{ amf_n2_ip }}/{{ access_cidr.split('/')[1] }}"]}]'
-  customOpen5gsConfig:
-    logger:
-      level: info
-    global:
-      max:
-        ue: 1024
-    amf:
-      sbi:
-        server:
-          - dev: eth0
-            port: 7777
-        client:
-          # Comunicación indirecta: todo pasa por el SCP (como en el chart).
-          scp:
-            - uri: http://{{ open5gs_release }}-scp-sbi.{{ ns_cp }}.svc.cluster.local:7777
-      ngap:
-        server:
-          - address: {{ amf_n2_ip }}
-      metrics:
-        server:
-          - dev: eth0
-            port: 9090
-      guami:
-        - plmn_id:
-            mcc: "{{ plmn_mcc }}"
-            mnc: "{{ plmn_mnc }}"
-          amf_id:
-            region: 2
-            set: 1
-      tai:
-        - plmn_id:
-            mcc: "{{ plmn_mcc }}"
-            mnc: "{{ plmn_mnc }}"
-          tac: 1
-      plmn_support:
-        - plmn_id:
-            mcc: "{{ plmn_mcc }}"
-            mnc: "{{ plmn_mnc }}"
-          s_nssai:
-            - sst: 1
-              sd: "0x111111"   # igual que en open5gs-values.yaml
-      security:
-        integrity_order: [NIA2, NIA1, NIA0]
-        ciphering_order: [NEA0, NEA1, NEA2]
-      network_name:
-        full: Open5GS
-        short: Next
-      amf_name: open5gs-amf0
-      time:
-        t3512:
-          value: 540

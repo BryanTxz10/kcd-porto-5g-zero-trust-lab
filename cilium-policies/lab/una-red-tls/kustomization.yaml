@@ -1,0 +1,7 @@
+# una-red con mTLS en la SBI (sbi_tls: true): el overlay una-red sin las reglas L7.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../una-red
+components:
+  - ../components/sbi-tls

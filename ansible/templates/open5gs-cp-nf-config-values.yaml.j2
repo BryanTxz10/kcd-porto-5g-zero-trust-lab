@@ -1,0 +1,230 @@
+{# open5gs-cp-nf-config-values.yaml.j2 — se genera si deploy_multus o sbi_tls. #}
+{% set tls = sbi_tls | bool %}
+{% set multus = deploy_multus | bool %}
+{% set scheme = 'https' if tls else 'http' %}
+{% macro svc(nf) %}{{ open5gs_release }}-{{ nf }}-sbi.{{ ns_cp }}.svc.cluster.local{% endmacro %}
+{% macro plmn() %}
+            mcc: "{{ plmn_mcc }}"
+            mnc: "{{ plmn_mnc }}"
+{%- endmacro %}
+{% macro sbi(nf, client) %}
+      sbi:
+        server:
+          - dev: eth0
+            port: 7777
+{% if tls %}
+            advertise: {{ svc(nf) }}
+{% endif %}
+{% if client == 'scp' %}
+        client:
+          scp:
+            - uri: {{ scheme }}://{{ svc('scp') }}:7777
+{% elif client == 'nrf' %}
+        client:
+          nrf:
+            - uri: {{ scheme }}://{{ svc('nrf') }}:7777
+{% endif %}
+{%- endmacro %}
+{% macro common(nf) %}
+    logger:
+      level: info
+    global:
+      max:
+        ue: 1024
+{% if tls %}
+    default:
+      tls:
+        server:
+          scheme: https
+          private_key: {{ sbi_tls_mount }}/tls.key
+          cert: {{ sbi_tls_mount }}/tls.crt
+          verify_client: true
+          verify_client_cacert: {{ sbi_tls_mount }}/ca.crt
+        client:
+          scheme: https
+          cacert: {{ sbi_tls_mount }}/ca.crt
+          client_private_key: {{ sbi_tls_mount }}/tls.key
+          client_cert: {{ sbi_tls_mount }}/tls.crt
+{% endif %}
+{%- endmacro %}
+{% macro metrics() %}
+      metrics:
+        server:
+          - dev: eth0
+            port: 9090
+{%- endmacro %}
+{% macro pod(nf) %}
+{% if tls %}
+  # Certificado de la NF (Secret sbi-tls-{{ nf }}, lo crea Ansible).
+  extraVolumes:
+    - name: sbi-tls
+      secret:
+        secretName: sbi-tls-{{ nf }}
+        defaultMode: 0400
+  extraVolumeMounts:
+    - name: sbi-tls
+      mountPath: {{ sbi_tls_mount }}
+      readOnly: true
+  # La SBI pasa a HTTPS con certificado de cliente: una sonda HTTP fallaría.
+  # Sondas por TCP al puerto de la SBI.
+  customLivenessProbe:
+    tcpSocket: { port: 7777 }
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  customReadinessProbe:
+    tcpSocket: { port: 7777 }
+    initialDelaySeconds: 5
+    periodSeconds: 5
+{% endif %}
+{%- endmacro %}
+# open5gs-cp-nf-config-values.yaml — generado por Ansible
+# (templates/open5gs-cp-nf-config-values.yaml.j2). Se pasa como -f extra al
+# release {{ open5gs_release }}. Modo: deploy_multus={{ multus }}, sbi_tls={{ tls }}.
+#
+# customOpen5gsConfig REEMPLAZA el fichero de configuración entero de la NF,
+# así que cada una va completa, en el formato de configs/open5gs/*.yaml.in de
+# Open5GS v2.7.5:
+#   - AMF: siempre que deploy_multus o sbi_tls (NGAP en {{ amf_n2_ip if multus else 'eth0' }}).
+#   - Resto de NF: solo con sbi_tls.
+# Con sbi_tls, cada NF lleva default.tls.server (https, verify_client: true)
+# y default.tls.client (https, certificado de cliente), anuncia el FQDN de
+# su Service (advertise) para que el certificado valide por nombre, y las URI
+# del SCP y del NRF pasan a https://.
+#
+# ⚠ NO VERIFICADO contra el chart 2.3.4: customOpen5gsConfig, extraVolumes,
+#   extraVolumeMounts, customLivenessProbe/customReadinessProbe y el nombre del
+#   Service de MongoDB. Antes de activar: docs/pruebas-fase4.md §2.
+{% if tls %}
+nrf:
+{{ pod('nrf') }}
+  customOpen5gsConfig:
+{{ common('nrf') }}
+    nrf:
+      serving:
+        - plmn_id:
+{{ plmn() }}
+{{ sbi('nrf', none) }}
+
+scp:
+{{ pod('scp') }}
+  customOpen5gsConfig:
+{{ common('scp') }}
+    scp:
+{{ sbi('scp', 'nrf') }}
+
+{% endif %}
+amf:
+{{ pod('amf') }}
+  customOpen5gsConfig:
+{{ common('amf') }}
+    amf:
+{{ sbi('amf', 'scp') }}
+      ngap:
+        server:
+{% if multus %}
+          - address: {{ amf_n2_ip }}
+{% else %}
+          - dev: eth0
+{% endif %}
+{{ metrics() }}
+      guami:
+        - plmn_id:
+{{ plmn() }}
+          amf_id:
+            region: 2
+            set: 1
+      tai:
+        - plmn_id:
+{{ plmn() }}
+          tac: 1
+      plmn_support:
+        - plmn_id:
+{{ plmn() }}
+          s_nssai:
+            - sst: 1
+              sd: "0x111111"
+      security:
+        integrity_order: [NIA2, NIA1, NIA0]
+        ciphering_order: [NEA0, NEA1, NEA2]
+      network_name:
+        full: Open5GS
+        short: Next
+      amf_name: open5gs-amf0
+      time:
+        t3512:
+          value: 540
+{% if tls %}
+
+smf:
+{{ pod('smf') }}
+  customOpen5gsConfig:
+{{ common('smf') }}
+    smf:
+{{ sbi('smf', 'scp') }}
+      pfcp:
+        server:
+          - dev: eth0
+        client:
+          upf:
+            - address: {{ open5gs_up_release }}-upf-pfcp.{{ ns_up }}.svc.cluster.local
+      gtpu:
+        server:
+          - dev: eth0
+{{ metrics() }}
+      session:
+        - subnet: {{ ue_pool_cidr }}
+          gateway: {{ ue_pool_cidr | regex_replace('\.0/\d+$', '.1') }}
+          dnn: internet
+      dns: {{ ue_dns | to_json }}
+      mtu: 1400
+
+ausf:
+{{ pod('ausf') }}
+  customOpen5gsConfig:
+{{ common('ausf') }}
+    ausf:
+{{ sbi('ausf', 'scp') }}
+
+udm:
+{{ pod('udm') }}
+  customOpen5gsConfig:
+{{ common('udm') }}
+    udm:
+{{ sbi('udm', 'scp') }}
+
+udr:
+{{ pod('udr') }}
+  customOpen5gsConfig:
+{{ common('udr') }}
+    db_uri: {{ open5gs_db_uri }}
+    udr:
+{{ sbi('udr', 'scp') }}
+
+pcf:
+{{ pod('pcf') }}
+  customOpen5gsConfig:
+{{ common('pcf') }}
+    db_uri: {{ open5gs_db_uri }}
+    pcf:
+{{ sbi('pcf', 'scp') }}
+{{ metrics() }}
+
+nssf:
+{{ pod('nssf') }}
+  customOpen5gsConfig:
+{{ common('nssf') }}
+    nssf:
+{{ sbi('nssf', 'scp') }}
+          nsi:
+            - uri: {{ scheme }}://{{ svc('nrf') }}:7777
+              s_nssai:
+                sst: 1
+                sd: "0x111111"
+
+bsf:
+{{ pod('bsf') }}
+  customOpen5gsConfig:
+{{ common('bsf') }}
+    bsf:
+{{ sbi('bsf', 'scp') }}
+{% endif %}

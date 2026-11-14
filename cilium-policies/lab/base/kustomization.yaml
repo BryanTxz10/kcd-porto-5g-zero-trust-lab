@@ -13,3 +13,4 @@ resources:
   - 04-egress-cp.yaml
   - 05-n4.yaml
   - 06-ran.yaml
+  - 07-sbi-probe.yaml

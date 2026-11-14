@@ -88,6 +88,27 @@ deploy_multi_networkpolicy: true
 #   el playbook falla al descargarlo si no.
 multi_networkpolicy_version: "v0.2.0"
 
+# --- mTLS en la SBI (Fase 4) ---
+# sbi_tls: true -> todas las NF hablan HTTPS con certificado de cliente
+#   (TS 33.501 §13.1). Ansible genera en el master una CA propia y un
+#   certificado por NF (SAN = nombres de su Service), los monta como Secret y
+#   pone en cada NF un open5gs.yaml completo con default.tls.server/client
+#   (customOpen5gsConfig). Las URI del NRF y del SCP pasan a https://.
+#   Con TLS la regla L7 de Cilium sobre el NRF queda ciega: se aplica el
+#   overlay <modo>-tls, solo L3/L4.
+# Ninguna clave va al repo: se generan al desplegar y se quedan en el master.
+sbi_tls: false
+sbi_tls_dir: "/etc/kcd-lab/pki/sbi"
+sbi_tls_days: 365
+sbi_tls_mount: "/etc/open5gs/tls"
+# NF con SBI (una por Deployment del release open5gs-cp) y el pod de prueba.
+sbi_nfs: [nrf, scp, amf, smf, ausf, udm, udr, pcf, nssf, bsf]
+# MongoDB del chart (subchart de Bitnami): Service <release>-mongodb.
+# ⚠ Nombre por verificar con helm template (docs/pruebas-fase4.md §2).
+open5gs_db_uri: "mongodb://{{ open5gs_release }}-mongodb.{{ ns_cp }}.svc.cluster.local/open5gs"
+# Servidores DNS que el SMF entrega a los UE.
+ue_dns: ["8.8.8.8", "8.8.4.4"]
+
 # --- Núcleo 5G (chart Helm de Gradiant, Open5GS 2.7.5) ---
 # El repo towards5gs-helm NO publica un chart de Open5GS (solo free5GC y
 # UERANSIM); los values del repo corresponden al chart de Gradiant.
