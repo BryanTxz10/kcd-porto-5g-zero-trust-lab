@@ -6,7 +6,7 @@
 #
 # OJO (KCD Porto, Fase 1): esto es el Multus macvlan del lab v2. La arquitectura
 # de tres redes (ipvlan access/n6, NAD por NF, dn-gw) solo existe en Ansible:
-# deploy_multus: true en ansible/group_vars/all.yml (docs/fase1-multus.md).
+# deploy_multus: true en ansible/group_vars/all.yml (docs/pruebas-fase1.md).
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 export KUBECONFIG="${KUBECONFIG:-${HOME}/.kube/config}"

@@ -19,7 +19,7 @@ de un núcleo 5G SA open source desplegado sobre Kubernetes.
 2. **Giro 1 — lo que el CNI no ve.** El radio (N2/N3) y la salida a internet del UPF
    (N6) viajan por redes dedicadas con **Multus**; esas interfaces quedan fuera del
    alcance del CNI, así que la política que creías total no las cubre.
-   Despliegue y pruebas: [`docs/fase1-multus.md`](docs/fase1-multus.md).
+   Despliegue y pruebas: [`docs/pruebas-fase1.md`](docs/pruebas-fase1.md).
 3. **Giro 2 — mTLS te deja ciego.** Al cifrar la SBI con **mTLS**, la política L7
    basada en inspección HTTP se queda sin visibilidad: ya no puede decidir por método
    ni por ruta.

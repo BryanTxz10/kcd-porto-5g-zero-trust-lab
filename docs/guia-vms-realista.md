@@ -614,7 +614,7 @@ Multus/ipvlan da problemas antes de la charla.
 > Estado del playbook: la arquitectura de tres redes ya está en `site.yml`
 > (Fase 1: ipvlan, un NAD por NF, dn-gw), pero **no se ha verificado en
 > clúster**. Despliega primero con `false` y pasa a `true` siguiendo
-> [`docs/fase1-multus.md`](fase1-multus.md).
+> [`docs/pruebas-fase1.md`](pruebas-fase1.md).
 
 ---
 
@@ -662,7 +662,7 @@ ansible all -m ping              # 4 × SUCCESS / "ping": "pong"
 ```
 
 Con eso Ansible ya llega a todo. **El despliegue (`ansible-playbook site.yml`)
-es la Fase 1**: sigue [`docs/fase1-multus.md`](fase1-multus.md).
+es la Fase 1**: sigue [`docs/pruebas-fase1.md`](pruebas-fase1.md).
 
 ---
 
@@ -673,7 +673,7 @@ nombre `fase0-redes-ok`. Si algo se rompe en las fases siguientes, vuelves
 aquí en un minuto en vez de reinstalar.
 
 Lo que viene (Fase 1, todo desde Ansible, sin pasos a mano; detalle y
-pruebas en [`docs/fase1-multus.md`](fase1-multus.md)):
+pruebas en [`docs/pruebas-fase1.md`](pruebas-fase1.md)):
 
 - Multus con ipvlan sobre `access`/`n6` y NAD con IPAM estático para AMF, gNB
   y UPF.

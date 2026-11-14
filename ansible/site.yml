@@ -24,19 +24,20 @@
 #     cada identidad de Cilium tenga su SVID. Sustituye al SPIRE autónomo de
 #     la v1 (bootstrap/manifests/spire.yaml), que no podía atestar agentes.
 #
-# Fase 1 (KCD Porto, deploy_multus: true en group_vars/all.yml; NO verificado
-# en clúster todavía, ver docs/fase1-multus.md):
-#   - Plugins CNI de referencia (ipvlan, static) en los nodos y Multus thick.
-#   - Cilium con cni.exclusive=false para no retirar la config de Multus.
-#   - Un NAD ipvlan L2 con IP fija por interfaz: amf-n2, gnb-access, upf-n3,
-#     upf-n6 (templates/multus-nads.yaml.j2).
-#   - AMF (NGAP) y UPF (GTP-U) atados a sus IP de la red access por values
-#     extra del chart (templates/open5gs-*-multus-values.yaml.j2), UPF sin NAT
-#     y con policy routing del pool de UE por n6.
-#   - gNB con N2/N3 sobre 'access' y el AMF por IP fija.
-#   - dn-gw: ip_forward, ruta al pool de UE por el UPF y MASQUERADE por mgmt.
-# Con deploy_multus: false (plan B) nada de esto se ejecuta y el playbook se
-# comporta como en el lab v2.
+# Redes dedicadas (KCD Porto, deploy_multus: true en group_vars/all.yml; NO
+# verificado en clúster todavía, ver docs/pruebas-fase1.md):
+#   - Rutas de CNI leídas de la config de containerd de k3s; ahí van los
+#     plugins ipvlan/static, la config de Cilium y los hostPath de Multus.
+#   - Multus thick con versión fijada y Cilium con cni.exclusive=false.
+#   - NAD 'access' (5g-cp, 5g-ran, 5g-up) y 'n6' (5g-up): ipvlan L2, IPAM
+#     static; cada pod pide su IP en la anotación.
+#   - AMF con NGAP en la red access (amf.yaml completo en customOpen5gsConfig),
+#     UPF con GTP-U en n3, sin NAT y con policy routing del pool por n6, gNB
+#     con N2/N3 en access y el AMF por IP fija.
+#   - dn-gw: ip_forward, ruta al pool de UE, CGNAT y firewall de N6, y un
+#     servidor iperf3 y HTTP como servicios de la red de datos.
+# Con deploy_multus: false (plan B) nada de esto se ejecuta: una sola red,
+# como en el lab v2.
 ---
 
 # =====================================================================
@@ -73,39 +74,6 @@
         regexp: '^([^#].*\sswap\s.*)$'
         replace: '# \1'
 
-    # ---------- Fase 1: plugins CNI que delega Multus (ipvlan, static) ----------
-    - name: "Plugins CNI de referencia para Multus"
-      when: deploy_multus | bool
-      tags: [multus]
-      block:
-        - name: "Crear {{ cni_bin_dir }}"
-          ansible.builtin.file:
-            path: "{{ cni_bin_dir }}"
-            state: directory
-            mode: "0755"
-
-        - name: "¿Están ya ipvlan y static?"
-          ansible.builtin.stat:
-            path: "{{ cni_bin_dir }}/ipvlan"
-          register: cni_ipvlan
-
-        - name: "Descargar cni-plugins {{ cni_plugins_version }} (verificado con su .sha256)"
-          ansible.builtin.get_url:
-            url: "https://github.com/containernetworking/plugins/releases/download/{{ cni_plugins_version }}/cni-plugins-linux-amd64-{{ cni_plugins_version }}.tgz"
-            checksum: "sha256:https://github.com/containernetworking/plugins/releases/download/{{ cni_plugins_version }}/cni-plugins-linux-amd64-{{ cni_plugins_version }}.tgz.sha256"
-            dest: "/tmp/cni-plugins-{{ cni_plugins_version }}.tgz"
-            mode: "0644"
-          when: not cni_ipvlan.stat.exists
-
-        # Solo los dos que hacen falta: no se pisa cilium-cni ni nada más.
-        - name: "Instalar ipvlan y static en {{ cni_bin_dir }}"
-          ansible.builtin.unarchive:
-            src: "/tmp/cni-plugins-{{ cni_plugins_version }}.tgz"
-            dest: "{{ cni_bin_dir }}"
-            remote_src: true
-            include: ["./ipvlan", "./static"]
-          when: not cni_ipvlan.stat.exists
-
 # =====================================================================
 # PLAY 1b — dn-gw: router N6 con CGNAT (Fase 1, solo con deploy_multus)
 # =====================================================================
@@ -118,6 +86,14 @@
   # no debe intentar conectarse (todas las tareas se saltan por el 'when').
   gather_facts: false
   tags: [dn-gw]
+  vars:
+    dn_services:
+      - name: dn-iperf3
+        desc: "iperf3 en {{ dn_gw_n6_ip }}:{{ dn_iperf3_port }}"
+        cmd: "/usr/bin/iperf3 -s -B {{ dn_gw_n6_ip }} -p {{ dn_iperf3_port }}"
+      - name: dn-http
+        desc: "HTTP en {{ dn_gw_n6_ip }}:{{ dn_http_port }}"
+        cmd: "/usr/bin/python3 -m http.server {{ dn_http_port }} --bind {{ dn_gw_n6_ip }} --directory /srv/dn"
   tasks:
     - name: "dn-gw: reenvío, ruta al pool de UE y MASQUERADE"
       when: deploy_multus | bool
@@ -127,6 +103,12 @@
             name: [iptables]
             state: present
             update_cache: true
+
+        - name: "Directorio de la red de datos"
+          ansible.builtin.file:
+            path: /srv/dn
+            state: directory
+            mode: "0755"
 
         - name: "Activar ip_forward de forma persistente"
           ansible.builtin.copy:
@@ -172,6 +154,37 @@
             enabled: true
             daemon_reload: "{{ dn_nat_unit.changed }}"
             state: "{{ 'restarted' if (dn_nat_script.changed or dn_nat_unit.changed) else 'started' }}"
+
+        # Servicios de la red de datos: destino local para los UE (además de
+        # internet), útil para medir con iperf3 o probar HTTP sin salir del lab.
+        - name: "Instalar iperf3 y python3 (servicios de la red de datos)"
+          ansible.builtin.apt:
+            name: [iperf3, python3]
+            state: present
+
+        - name: "Página de prueba de la red de datos"
+          ansible.builtin.copy:
+            dest: /srv/dn/index.html
+            content: "dn-gw: red de datos del lab (N6). Si lees esto desde un UE, N6 funciona.\n"
+            mode: "0644"
+
+        - name: "Unidades systemd de los servicios de la red de datos"
+          ansible.builtin.template:
+            src: templates/dn-gw-service.service.j2
+            dest: "/etc/systemd/system/{{ svc.name }}.service"
+            mode: "0644"
+          loop: "{{ dn_services }}"
+          loop_control: { loop_var: svc, label: "{{ svc.name }}" }
+          register: dn_svc_units
+
+        - name: "Habilitar y arrancar los servicios de la red de datos"
+          ansible.builtin.systemd:
+            name: "{{ svc.name }}"
+            enabled: true
+            daemon_reload: true
+            state: "{{ 'restarted' if dn_svc_units.changed else 'started' }}"
+          loop: "{{ dn_services }}"
+          loop_control: { loop_var: svc, label: "{{ svc.name }}" }
 
         - name: "Comprobar la ruta al pool de UE"
           ansible.builtin.command: "ip route show {{ ue_pool_route.to }}"
@@ -269,6 +282,77 @@
       changed_when: true
 
 # =====================================================================
+# PLAY 3b — Rutas de CNI de k3s y plugins para Multus (deploy_multus)
+# =====================================================================
+# k3s genera la config de containerd con las rutas de CNI que usa el kubelet
+# (bin_dir y conf_dir). Se leen de ahí en vez de suponerlas: con
+# --flannel-backend=none deberían ser /opt/cni/bin y /etc/cni/net.d, pero si
+# no lo son, Cilium, Multus y los plugins deben ir donde k3s los busca.
+- name: "Rutas de CNI de k3s y plugins ipvlan/static"
+  hosts: cluster
+  become: true
+  tags: [multus]
+  tasks:
+    - name: "Detectar rutas de CNI y plugins"
+      when: deploy_multus | bool
+      block:
+        - name: "Esperar a la config de containerd que genera k3s"
+          ansible.builtin.wait_for:
+            path: /var/lib/rancher/k3s/agent/etc/containerd/config.toml
+            timeout: 120
+
+        - name: "Leer la config de containerd de k3s"
+          ansible.builtin.slurp:
+            src: /var/lib/rancher/k3s/agent/etc/containerd/config.toml
+          register: k3s_containerd
+
+        - name: "Rutas de CNI efectivas en este nodo"
+          ansible.builtin.set_fact:
+            cni_bin_dir: "{{ (k3s_containerd.content | b64decode | regex_search('bin_dir\\s*=\\s*\"([^\"]+)\"', '\\1') | default([cni_bin_dir_default], true))[0] }}"
+            cni_conf_dir: "{{ (k3s_containerd.content | b64decode | regex_search('conf_dir\\s*=\\s*\"([^\"]+)\"', '\\1') | default([cni_conf_dir_default], true))[0] }}"
+
+        - name: "Mostrar las rutas detectadas"
+          ansible.builtin.debug:
+            msg: "bin_dir={{ cni_bin_dir }} conf_dir={{ cni_conf_dir }}"
+
+        # Todos los nodos deben coincidir: Multus es un DaemonSet con un único
+        # hostPath para todo el clúster.
+        - name: "Las rutas coinciden con las del master"
+          ansible.builtin.assert:
+            that:
+              - cni_bin_dir == hostvars[groups['master'][0]].cni_bin_dir
+              - cni_conf_dir == hostvars[groups['master'][0]].cni_conf_dir
+            fail_msg: "Rutas de CNI distintas entre nodos; revisa la versión de k3s de cada uno."
+
+        - name: "¿Están ya ipvlan y static?"
+          ansible.builtin.stat:
+            path: "{{ cni_bin_dir }}/ipvlan"
+          register: cni_ipvlan
+
+        - name: "Descargar cni-plugins {{ cni_plugins_version }} (verificado con su .sha256)"
+          ansible.builtin.get_url:
+            url: "https://github.com/containernetworking/plugins/releases/download/{{ cni_plugins_version }}/cni-plugins-linux-amd64-{{ cni_plugins_version }}.tgz"
+            checksum: "sha256:https://github.com/containernetworking/plugins/releases/download/{{ cni_plugins_version }}/cni-plugins-linux-amd64-{{ cni_plugins_version }}.tgz.sha256"
+            dest: "/tmp/cni-plugins-{{ cni_plugins_version }}.tgz"
+            mode: "0644"
+          when: not cni_ipvlan.stat.exists
+
+        - name: "Crear {{ cni_bin_dir }}"
+          ansible.builtin.file:
+            path: "{{ cni_bin_dir }}"
+            state: directory
+            mode: "0755"
+
+        # Solo los dos que hacen falta: no se pisa cilium-cni ni nada más.
+        - name: "Instalar ipvlan y static en {{ cni_bin_dir }}"
+          ansible.builtin.unarchive:
+            src: "/tmp/cni-plugins-{{ cni_plugins_version }}.tgz"
+            dest: "{{ cni_bin_dir }}"
+            remote_src: true
+            include: ["./ipvlan", "./static"]
+          when: not cni_ipvlan.stat.exists
+
+# =====================================================================
 # PLAY 4 — Componentes del clúster (se ejecutan EN el master)
 # =====================================================================
 - name: "Desplegar CNI, core 5G y RAN simulada"
@@ -330,6 +414,8 @@
         --set hubble.ui.enabled=true
         {% if deploy_multus | bool %}
         --set cni.exclusive=false
+        --set cni.binPath={{ cni_bin_dir | default(cni_bin_dir_default) }}
+        --set cni.confPath={{ cni_conf_dir | default(cni_conf_dir_default) }}
         {% endif %}
         {% if deploy_spire | bool %}
         --set authentication.mutual.spire.enabled=true
@@ -444,12 +530,32 @@
     # ---------- Multus + NAD por interfaz (Fase 1, solo con deploy_multus) ----------
     # Cilium va con cni.exclusive=false (arriba): si no, renombra la config de
     # Multus en /etc/cni/net.d y la segunda interfaz nunca aparece.
-    - name: "Instalar Multus (thick daemonset)"
-      ansible.builtin.command: >
-        kubectl apply -f
-        https://raw.githubusercontent.com/k8snetworkplumbingwg/multus-cni/{{ multus_version }}/deployments/multus-daemonset-thick.yml
+    - name: "Descargar el manifiesto de Multus thick {{ multus_version }}"
+      ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/k8snetworkplumbingwg/multus-cni/{{ multus_version }}/deployments/multus-daemonset-thick.yml"
+        dest: "{{ work_dir }}/multus-daemonset-thick.yml"
+        mode: "0644"
       when: deploy_multus | bool
-      changed_when: false
+      tags: [multus]
+
+    # El manifiesto monta /etc/cni/net.d y /opt/cni/bin del host. Se cambian
+    # por las rutas que usa k3s (PLAY 3b); si coinciden, no cambia nada.
+    - name: "Ajustar los hostPath de Multus a las rutas de CNI de k3s"
+      ansible.builtin.replace:
+        path: "{{ work_dir }}/multus-daemonset-thick.yml"
+        regexp: "{{ item.re }}"
+        replace: "{{ item.to }}"
+      loop:
+        - { re: 'path: /etc/cni/net\.d$', to: "path: {{ cni_conf_dir | default(cni_conf_dir_default) }}" }
+        - { re: 'path: /opt/cni/bin$', to: "path: {{ cni_bin_dir | default(cni_bin_dir_default) }}" }
+      when: deploy_multus | bool
+      tags: [multus]
+
+    - name: "Instalar Multus (thick daemonset)"
+      ansible.builtin.command: "kubectl apply -f {{ work_dir }}/multus-daemonset-thick.yml"
+      register: multus_apply
+      when: deploy_multus | bool
+      changed_when: "'configured' in multus_apply.stdout or 'created' in multus_apply.stdout"
       tags: [multus]
 
     - name: "Esperar a Multus en todos los nodos"
@@ -458,7 +564,7 @@
       changed_when: false
       tags: [multus]
 
-    - name: "Generar los NetworkAttachmentDefinition (amf-n2, gnb-access, upf-n3, upf-n6)"
+    - name: "Generar los NetworkAttachmentDefinition (access y n6)"
       ansible.builtin.template:
         src: templates/multus-nads.yaml.j2
         dest: "{{ work_dir }}/multus-nads.yaml"
@@ -645,8 +751,10 @@
         mode: "0644"
       tags: [open5gs, ueransim]
 
-    - name: "Aplicar amf-n2-headless.yaml"
+    # Solo en plan B: con Multus el gNB llega al AMF por su IP en la red access.
+    - name: "Aplicar amf-n2-headless.yaml (solo plan B)"
       ansible.builtin.command: "kubectl apply -f {{ work_dir }}/amf-n2-headless.yaml"
+      when: not (deploy_multus | bool)
       changed_when: false
       tags: [open5gs, ueransim]
 
@@ -710,6 +818,16 @@
       when: deploy_multus | bool
       changed_when: false
       failed_when: multus_ifaces.rc != 0
+      tags: [ueransim, multus]
+
+    - name: "Fase 1: el gNB hace NG Setup contra el AMF ({{ amf_n2_ip }})"
+      ansible.builtin.command: "kubectl -n {{ ns_ran }} logs deploy/ueransim-gnb"
+      register: gnb_logs
+      retries: 20
+      delay: 6
+      until: "'NG Setup procedure is successful' in gnb_logs.stdout"
+      when: deploy_multus | bool
+      changed_when: false
       tags: [ueransim, multus]
 
     - name: "Mensaje final"

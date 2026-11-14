@@ -142,7 +142,7 @@ Revisa **`group_vars/all.yml`**. Con `deploy_multus: false` (plan B, una sola
 red) no hace falta cambiar nada. Con `true` (tres redes) las NIC de los
 workers deben llamarse `access`/`n6` (renombradas por MAC en netplan, ver
 `docs/guia-vms-realista.md` §9). Lo que hace el playbook en ese modo, cómo
-probarlo y lo que aún no está verificado: `docs/fase1-multus.md`.
+probarlo y lo que aún no está verificado: `docs/pruebas-fase1.md`.
 
 ---
 
