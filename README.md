@@ -59,6 +59,7 @@ de un núcleo 5G SA open source desplegado sobre Kubernetes.
 ├── spire-config/        # SPIRE autónomo de la v1 (legado; en lab v2 SPIRE lo instala Cilium)
 ├── monitoring/          # Consultas de monitoreo de recursos del AMF
 ├── ueransim-config/     # Configuración de UERANSIM (gNB y UEs)
+├── tools/spec2policy/   # Fase 5: CNP L7 y blast radius map derivados de la OpenAPI 3GPP
 ├── docs/                # Arquitectura, guías de laboratorio y estado del arte
 └── legacy/              # Material de la tesis, archivado y NO mantenido (ver legacy/README.md)
 ```
@@ -105,6 +106,23 @@ de pasos de la demostración (no como condiciones experimentales con hipótesis)
 
 El paso entre capas es declarativo con Kustomize: `make condition C=c1` (… c2, c3).
 Para una comprobación estática de los flujos L3/L4 sin clúster: `make policy-matrix`.
+
+## Spec-as-policy y blast radius map (Fase 5)
+
+`tools/spec2policy/` deriva las CiliumNetworkPolicy L7 de la SBI a partir de la
+OpenAPI 3GPP y de la tabla de consumidores de TS 23.501, las cruza con flujos de
+Hubble y produce un **blast radius map**: qué operaciones permite el estándar, cuáles
+se observaron y desde qué origen. No necesita clúster.
+
+| Qué | Dónde |
+|---|---|
+| Generar y probar | `make spec2policy` · `make spec2policy-test` |
+| Guía de pruebas (qué debe verse, cómo capturar flujos reales) | [`docs/pruebas-fase5.md`](docs/pruebas-fase5.md) |
+| Ejemplo con flujos **sintéticos** | [`tools/spec2policy/examples/out/blast-radius-map.md`](tools/spec2policy/examples/out/blast-radius-map.md) |
+| Plantilla para la captura real en el clúster | [`docs/blast-radius-map-plantilla.md`](docs/blast-radius-map-plantilla.md) · [`.csv`](docs/blast-radius-map-plantilla.csv) |
+
+La plantilla está vacía a propósito: se rellena con la salida de una captura real,
+que aún no se ha hecho (ver *Estado de verificación*).
 
 ## Licencia
 
