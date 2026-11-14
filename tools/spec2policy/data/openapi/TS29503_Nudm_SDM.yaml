@@ -1,0 +1,162 @@
+# Extracto generado por scripts/make_extracts.py desde jdegre/5GC_APIs@06137ac51e2cc19a6d767bb63a27563d27841b3a
+# Fichero origen: TS29503_Nudm_SDM.yaml. Solo se conservan info, servers y paths con
+# método/operationId/summary; se eliminan esquemas, parámetros y respuestas.
+# NO EDITAR A MANO: regenerar con el script.
+openapi: 3.0.0
+info:
+  title: Nudm_SDM
+  version: 2.2.5
+externalDocs:
+  description: 3GPP TS 29.503 Unified Data Management Services, version 17.14.0
+  url: https://www.3gpp.org/ftp/Specs/archive/29_series/29.503/
+servers:
+  - url: '{apiRoot}/nudm-sdm/v2'
+    variables:
+      apiRoot:
+        default: https://example.com
+        description: apiRoot as defined in clause 4.4 of 3GPP TS 29.501.
+paths:
+  /{supi}:
+    get:
+      operationId: GetDataSets
+      summary: retrieve multiple data sets
+  /{supi}/nssai:
+    get:
+      operationId: GetNSSAI
+      summary: retrieve a UE's subscribed NSSAI
+  /{supi}/ue-context-in-amf-data:
+    get:
+      operationId: GetUeCtxInAmfData
+      summary: retrieve a UE's UE Context In AMF Data
+  /{supi}/am-data:
+    get:
+      operationId: GetAmData
+      summary: retrieve a UE's Access and Mobility Subscription Data
+  /{supi}/am-data/ecr-data:
+    get:
+      operationId: GetEcrData
+      summary: retrieve a UE's subscribed Enhanced Coverage Restriction Data
+  /{supi}/smf-select-data:
+    get:
+      operationId: GetSmfSelData
+      summary: retrieve a UE's SMF Selection Subscription Data
+  /{supi}/ue-context-in-smf-data:
+    get:
+      operationId: GetUeCtxInSmfData
+      summary: retrieve a UE's UE Context In SMF Data
+  /{supi}/ue-context-in-smsf-data:
+    get:
+      operationId: GetUeCtxInSmsfData
+      summary: retrieve a UE's UE Context In SMSF Data
+  /{supi}/trace-data:
+    get:
+      operationId: GetTraceConfigData
+      summary: retrieve a UE's Trace Configuration Data
+  /{supi}/sm-data:
+    get:
+      operationId: GetSmData
+      summary: retrieve a UE's Session Management Subscription Data
+  /{supi}/sms-data:
+    get:
+      operationId: GetSmsData
+      summary: retrieve a UE's SMS Subscription Data
+  /{supi}/sms-mng-data:
+    get:
+      operationId: GetSmsMngtData
+      summary: retrieve a UE's SMS Management Subscription Data
+  /{ueId}/lcs-privacy-data:
+    get:
+      operationId: GetLcsPrivacyData
+      summary: retrieve a UE's LCS Privacy Subscription Data
+  /{supi}/lcs-mo-data:
+    get:
+      operationId: GetLcsMoData
+      summary: retrieve a UE's LCS Mobile Originated Subscription Data
+  /{supi}/lcs-bca-data:
+    get:
+      operationId: GetLcsBcaData
+      summary: retrieve a UE's LCS Broadcast Assistance Data Types Subscription Data
+  /{supi}/v2x-data:
+    get:
+      operationId: GetV2xData
+      summary: retrieve a UE's V2X Subscription Data
+  /{supi}/prose-data:
+    get:
+      operationId: GetProseData
+      summary: retrieve a UE's ProSe Subscription Data
+  /{supi}/5mbs-data:
+    get:
+      operationId: GetMbsData
+      summary: retrieve a UE's 5MBS Subscription Data
+  /{supi}/uc-data:
+    get:
+      operationId: GetUcData
+      summary: retrieve a UE's User Consent Subscription Data
+  /{ueId}/sdm-subscriptions:
+    post:
+      operationId: Subscribe
+      summary: subscribe to notifications
+  /{ueId}/sdm-subscriptions/{subscriptionId}:
+    delete:
+      operationId: Unsubscribe
+      summary: unsubscribe from notifications
+    patch:
+      operationId: Modify
+      summary: modify the subscription
+  /{ueId}/id-translation-result:
+    get:
+      operationId: GetSupiOrGpsi
+      summary: retrieve a UE's SUPI or GPSI
+  /{supi}/am-data/sor-ack:
+    put:
+      operationId: SorAckInfo
+      summary: Nudm_Sdm Info service operation
+  /{supi}/am-data/upu-ack:
+    put:
+      operationId: UpuAck
+      summary: Nudm_Sdm Info for UPU service operation
+  /{supi}/am-data/subscribed-snssais-ack:
+    put:
+      operationId: S-NSSAIs Ack
+      summary: Nudm_Sdm Info operation for S-NSSAIs acknowledgement
+  /{supi}/am-data/cag-ack:
+    put:
+      operationId: CAG Ack
+      summary: Nudm_Sdm Info operation for CAG acknowledgement
+  /{supi}/am-data/update-sor:
+    post:
+      operationId: Update SOR Info
+      summary: Nudm_Sdm custom operation to trigger SOR info update
+  /shared-data:
+    get:
+      operationId: GetSharedData
+      summary: retrieve shared data
+  /shared-data-subscriptions:
+    post:
+      operationId: SubscribeToSharedData
+      summary: subscribe to notifications for shared data
+  /shared-data-subscriptions/{subscriptionId}:
+    delete:
+      operationId: UnsubscribeForSharedData
+      summary: unsubscribe from notifications for shared data
+    patch:
+      operationId: ModifySharedDataSubs
+      summary: modify the subscription
+  /group-data/group-identifiers:
+    get:
+      operationId: GetGroupIdentifiers
+      summary: Mapping of Group Identifiers
+  /shared-data/{sharedDataId}:
+    get:
+      operationId: GetIndividualSharedData
+      summary: retrieve the individual shared data
+  /multiple-identifiers:
+    get:
+      operationId: GetMultipleIdentifiers
+      summary: Mapping of UE Identifiers
+x-spec2policy:
+  source: jdegre/5GC_APIs
+  commit: 06137ac51e2cc19a6d767bb63a27563d27841b3a
+  file: TS29503_Nudm_SDM.yaml
+  resolved_refs: []
+  path_prefixes: []

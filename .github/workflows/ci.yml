@@ -120,3 +120,33 @@ jobs:
         run: |
           pip install ruff
           ruff check --select E9,F63,F7,F82 . || true
+
+  spec2policy:
+    name: Fase 5 · spec2policy (ruff + pytest + salida al día)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: tools/spec2policy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Instalar Python 3.12
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tools/spec2policy/requirements.txt
+      - name: Dependencias fijadas
+        run: pip install -r requirements.txt
+      - name: ruff (BLOQUEA)
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: pytest (BLOQUEA)
+        run: python -m pytest -q
+      - name: Los ejemplos commiteados coinciden con lo generado (BLOQUEA)
+        working-directory: .
+        run: |
+          make spec2policy SPEC2POLICY_PY=python
+          git diff --exit-code -- tools/spec2policy/examples/out

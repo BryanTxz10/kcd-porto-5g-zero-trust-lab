@@ -1,0 +1,70 @@
+# Generado por tools/spec2policy (modo standard). NO EDITAR A MANO.
+# Ingress SBI (TCP 7777) de la NF 'ausf' en 5g-cp, derivado de:
+#   - tabla productor/consumidor: data/services.yaml
+#   - OpenAPI 3GPP Rel-17 (extractos, mirror fijado por commit):
+#       jdegre/5GC_APIs@06137ac51e2c:TS29509_Nausf_UEAuthentication.yaml
+# SCP: en Open5GS las peticiones llegan al productor desde el SCP (comunicación
+# indirecta, TS 23.501 Anexo E). Por eso casi todo el ingress viene de 'scp'.
+# Estado: NO verificado en clúster (ver docs/pruebas-fase5.md).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: spec2policy-sbi-ausf
+  namespace: 5g-cp
+  labels:
+    app.kubernetes.io/part-of: spec2policy
+    cib46.io/managed: 'true'
+  annotations:
+    description: 'spec-as-policy (standard): ingress SBI de ausf con reglas HTTP por método y path derivadas
+      de los OpenAPI 3GPP de nausf-auth.'
+    spec2policy.cib46.io/mode: standard
+    spec2policy.cib46.io/services: nausf-auth
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: ausf
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            cib46-nf-type: core-nf
+            app.kubernetes.io/name: nrf
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: POST
+                path: /nnrf-nfm/v1/nf-status-notify(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            cib46-nf-type: core-nf
+            app.kubernetes.io/name: scp
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: DELETE
+                path: /nausf-auth/v1/prose-authentications/[^/?]+/prose-auth(\?.*)?
+              - method: DELETE
+                path: /nausf-auth/v1/ue-authentications/[^/?]+/5g-aka-confirmation(\?.*)?
+              - method: DELETE
+                path: /nausf-auth/v1/ue-authentications/[^/?]+/eap-session(\?.*)?
+              - method: POST
+                path: /nausf-auth/v1/prose-authentications(\?.*)?
+              - method: POST
+                path: /nausf-auth/v1/prose-authentications/[^/?]+/prose-auth(\?.*)?
+              - method: POST
+                path: /nausf-auth/v1/rg-authentications(\?.*)?
+              - method: POST
+                path: /nausf-auth/v1/ue-authentications(\?.*)?
+              - method: POST
+                path: /nausf-auth/v1/ue-authentications/[^/?]+/eap-session(\?.*)?
+              - method: POST
+                path: /nausf-auth/v1/ue-authentications/deregister(\?.*)?
+              - method: PUT
+                path: /nausf-auth/v1/ue-authentications/[^/?]+/5g-aka-confirmation(\?.*)?

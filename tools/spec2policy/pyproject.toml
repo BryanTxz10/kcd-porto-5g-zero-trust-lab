@@ -1,0 +1,34 @@
+# spec2policy — Fase 5 (spec-as-policy) del laboratorio KCD Porto.
+# Deriva CiliumNetworkPolicy L7 y un "blast radius map" a partir de las
+# especificaciones OpenAPI de 3GPP y de flujos observados con Hubble.
+# Las versiones de las dependencias están fijadas en requirements.txt.
+
+[project]
+name = "spec2policy"
+version = "0.1.0"
+description = "Deriva CiliumNetworkPolicy L7 y un mapa de radio de impacto desde los OpenAPI 3GPP de la SBI 5G"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+dependencies = ["PyYAML==6.0.2"]
+
+[project.scripts]
+spec2policy = "spec2policy.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["spec2policy*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+# E/W: estilo; F: errores; I: orden de imports; B: bugbear; UP: modernización.
+select = ["E", "W", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

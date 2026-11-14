@@ -1,0 +1,87 @@
+# Extracto generado por scripts/make_extracts.py desde jdegre/5GC_APIs@06137ac51e2cc19a6d767bb63a27563d27841b3a
+# Fichero origen: TS29518_Namf_Communication.yaml. Solo se conservan info, servers y paths con
+# método/operationId/summary; se eliminan esquemas, parámetros y respuestas.
+# NO EDITAR A MANO: regenerar con el script.
+openapi: 3.0.0
+info:
+  title: Namf_Communication
+  version: 1.2.4
+externalDocs:
+  description: 3GPP TS 29.518 V17.12.0; 5G System; Access and Mobility Management Services
+  url: https://www.3gpp.org/ftp/Specs/archive/29_series/29.518/
+servers:
+  - url: '{apiRoot}/namf-comm/v1'
+    variables:
+      apiRoot:
+        default: https://example.com
+        description: apiRoot as defined in clause 4.4 of 3GPP TS 29.501
+paths:
+  /ue-contexts/{ueContextId}:
+    put:
+      operationId: CreateUEContext
+      summary: Namf_Communication CreateUEContext service Operation
+  /ue-contexts/{ueContextId}/release:
+    post:
+      operationId: ReleaseUEContext
+      summary: Namf_Communication ReleaseUEContext service Operation
+  /ue-contexts/{ueContextId}/assign-ebi:
+    post:
+      operationId: EBIAssignment
+      summary: Namf_Communication EBI Assignment service Operation
+  /ue-contexts/{ueContextId}/transfer:
+    post:
+      operationId: UEContextTransfer
+      summary: Namf_Communication UEContextTransfer service Operation
+  /ue-contexts/{ueContextId}/transfer-update:
+    post:
+      operationId: RegistrationStatusUpdate
+      summary: Namf_Communication RegistrationStatusUpdate service Operation
+  /ue-contexts/{ueContextId}/relocate:
+    post:
+      operationId: RelocateUEContext
+      summary: Namf_Communication RelocateUEContext service Operation
+  /ue-contexts/{ueContextId}/cancel-relocate:
+    post:
+      operationId: CancelRelocateUEContext
+      summary: Namf_Communication CancelRelocateUEContext service Operation
+  /ue-contexts/{ueContextId}/n1-n2-messages:
+    post:
+      operationId: N1N2MessageTransfer
+      summary: Namf_Communication N1N2 Message Transfer (UE Specific) service Operation
+  /ue-contexts/{ueContextId}/n1-n2-messages/subscriptions:
+    post:
+      operationId: N1N2MessageSubscribe
+      summary: Namf_Communication N1N2 Message Subscribe (UE Specific) service Operation
+  /ue-contexts/{ueContextId}/n1-n2-messages/subscriptions/{subscriptionId}:
+    delete:
+      operationId: N1N2MessageUnSubscribe
+      summary: Namf_Communication N1N2 Message UnSubscribe (UE Specific) service Operation
+  /non-ue-n2-messages/transfer:
+    post:
+      operationId: NonUeN2MessageTransfer
+      summary: Namf_Communication Non UE N2 Message Transfer service Operation
+  /non-ue-n2-messages/subscriptions:
+    post:
+      operationId: NonUeN2InfoSubscribe
+      summary: Namf_Communication Non UE N2 Info Subscribe service Operation
+  /non-ue-n2-messages/subscriptions/{n2NotifySubscriptionId}:
+    delete:
+      operationId: NonUeN2InfoUnSubscribe
+      summary: Namf_Communication Non UE N2 Info UnSubscribe service Operation
+  /subscriptions:
+    post:
+      operationId: AMFStatusChangeSubscribe
+      summary: Namf_Communication AMF Status Change Subscribe service Operation
+  /subscriptions/{subscriptionId}:
+    put:
+      operationId: AMFStatusChangeSubscribeModfy
+      summary: Namf_Communication AMF Status Change Subscribe Modify service Operation
+    delete:
+      operationId: AMFStatusChangeUnSubscribe
+      summary: Namf_Communication AMF Status Change UnSubscribe service Operation
+x-spec2policy:
+  source: jdegre/5GC_APIs
+  commit: 06137ac51e2cc19a6d767bb63a27563d27841b3a
+  file: TS29518_Namf_Communication.yaml
+  resolved_refs: []
+  path_prefixes: []

@@ -1,0 +1,49 @@
+# Extracto generado por scripts/make_extracts.py desde jdegre/5GC_APIs@06137ac51e2cc19a6d767bb63a27563d27841b3a
+# Fichero origen: TS29509_Nausf_UEAuthentication.yaml. Solo se conservan info, servers y paths con
+# método/operationId/summary; se eliminan esquemas, parámetros y respuestas.
+# NO EDITAR A MANO: regenerar con el script.
+openapi: 3.0.0
+info:
+  title: AUSF API
+  version: 1.2.3
+externalDocs:
+  description: 3GPP TS 29.509 V17.9.0; 5G System; 3GPP TS Authentication Server services.
+  url: https://www.3gpp.org/ftp/Specs/archive/29_series/29.509
+servers:
+  - url: '{apiRoot}/nausf-auth/v1'
+    variables:
+      apiRoot:
+        default: https://example.com
+        description: apiRoot as defined in clause 4.4 of 3GPP TS 29.501.
+paths:
+  /ue-authentications:
+    post: {}
+  /ue-authentications/deregister:
+    post: {}
+  /ue-authentications/{authCtxId}/5g-aka-confirmation:
+    put: {}
+    delete:
+      operationId: Delete5gAkaAuthenticationResult
+      summary: Deletes the authentication result in the UDM
+  /ue-authentications/{authCtxId}/eap-session:
+    post:
+      operationId: EapAuthMethod
+    delete:
+      operationId: DeleteEapAuthenticationResult
+      summary: Deletes the authentication result in the UDM
+  /rg-authentications:
+    post: {}
+  /prose-authentications:
+    post: {}
+  /prose-authentications/{authCtxId}/prose-auth:
+    post:
+      operationId: proseAuth
+    delete:
+      operationId: DeleteProSeAuthenticationResult
+      summary: Deletes the authentication result in the UDM
+x-spec2policy:
+  source: jdegre/5GC_APIs
+  commit: 06137ac51e2cc19a6d767bb63a27563d27841b3a
+  file: TS29509_Nausf_UEAuthentication.yaml
+  resolved_refs: []
+  path_prefixes: []

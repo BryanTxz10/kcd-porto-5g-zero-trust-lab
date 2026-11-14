@@ -101,3 +101,20 @@ ran-restart: ## Reinicia gNB y luego UE (tras reinicio del AMF)
 help: ## Muestra esta ayuda
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | \
 	 awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
+
+# ---------------------------------------------------------------------------
+# Fase 5 — spec-as-policy (tools/spec2policy, no necesita lab)
+# ---------------------------------------------------------------------------
+SPEC2POLICY_DIR := tools/spec2policy
+SPEC2POLICY_PY  ?= python3
+
+.PHONY: spec2policy
+spec2policy: ## Fase 5: genera CNP L7 + blast radius map desde OpenAPI 3GPP y flujos Hubble de ejemplo
+	cd $(SPEC2POLICY_DIR) && $(SPEC2POLICY_PY) -m spec2policy generate \
+	  --openapi-dir data/openapi --services data/services.yaml \
+	  --flows fixtures/hubble/sbi-sin-tls.jsonl --out examples/out --clean
+
+.PHONY: spec2policy-test
+spec2policy-test: ## Fase 5: ruff + pytest de tools/spec2policy
+	cd $(SPEC2POLICY_DIR) && $(SPEC2POLICY_PY) -m ruff check . && \
+	  $(SPEC2POLICY_PY) -m ruff format --check . && $(SPEC2POLICY_PY) -m pytest -q

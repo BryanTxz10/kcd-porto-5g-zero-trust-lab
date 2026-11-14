@@ -1,0 +1,177 @@
+# services.yaml — tabla a mano de qué NF ofrece y consume cada servicio SBI en el
+# testbed (Open5GS 2.7.5, chart Gradiant 2.3.4, namespace 5g-cp, Cilium 1.15.4).
+#
+# Fuentes:
+#   - 3GPP TS 23.501 §7.2, Tabla 7.2-1: servicios que ofrece cada NF (productor).
+#   - 3GPP TS 23.502 §5.2, Tablas 5.2.x.1-1: consumidores conocidos de cada servicio.
+#   - 3GPP TS 23.501 §6.3.1 y Anexo E: comunicación indirecta a través del SCP.
+#   - 3GPP TS 29.5xx (columna 'spec'): API Stage 3 de cada servicio; el fichero
+#     'openapi' es el extracto de data/openapi/ (mirror jdegre/5GC_APIs fijado).
+#
+# Los consumidores se limitan a las NF desplegadas en el testbed. Lo que el
+# estándar permite a NF que no existen aquí (NEF, SMSF, LMF, CHF...) no entra en
+# la política ni en el informe.
+#
+# TRAMPA DEL SCP (léase antes de interpretar el informe):
+#   Open5GS usa comunicación indirecta con descubrimiento delegado (Modelo D,
+#   TS 23.501 Anexo E.3): cada NF envía sus peticiones al SCP con cabeceras
+#   3gpp-Sbi-Discovery-*, el SCP resuelve el productor contra el NRF y reenvía.
+#   Consecuencia para la política de red: en el PRODUCTOR (UDM, AUSF, SMF...) el
+#   origen L3 —y la identidad Cilium— de casi todo es el SCP, no la NF que pidió.
+#   La autorización "quién puede pedir qué" solo puede aplicarse en la entrada
+#   del SCP (donde el origen sí es el consumidor real) o dentro del SCP.
+#   La única excepción es nnrf-nfm: cada NF habla con el NRF directamente para
+#   registrarse y enviar heartbeats (cliente NRF propio, sin SCP).
+version: 1
+namespace: 5g-cp
+sbi_port: 7777
+
+# Labels que usan las CiliumNetworkPolicy existentes (cilium-policies/c2, c3).
+labels:
+  nf_name: app.kubernetes.io/name
+  namespace: io.kubernetes.pod.namespace
+  identity:
+    cib46-nf-type: core-nf
+
+# NF del testbed (nombre = valor del label app.kubernetes.io/name del chart).
+nfs:
+  nrf: {deployment: open5gs-cp-nrf, service: open5gs-cp-nrf-sbi}
+  scp: {deployment: open5gs-cp-scp, service: open5gs-cp-scp-sbi}
+  amf: {deployment: open5gs-cp-amf, service: open5gs-cp-amf-sbi}
+  smf: {deployment: open5gs-cp-smf, service: open5gs-cp-smf-sbi}
+  ausf: {deployment: open5gs-cp-ausf, service: open5gs-cp-ausf-sbi}
+  udm: {deployment: open5gs-cp-udm, service: open5gs-cp-udm-sbi}
+  udr: {deployment: open5gs-cp-udr, service: open5gs-cp-udr-sbi}
+  pcf: {deployment: open5gs-cp-pcf, service: open5gs-cp-pcf-sbi}
+  nssf: {deployment: open5gs-cp-nssf, service: open5gs-cp-nssf-sbi}
+  bsf: {deployment: open5gs-cp-bsf, service: open5gs-cp-bsf-sbi}
+
+# Modelado del SCP como intermediario (TS 23.501 §6.3.1, Anexo E).
+scp:
+  nf: scp
+  model: D  # descubrimiento delegado: el consumidor ni siquiera consulta al NRF
+  # Servicios que en Open5GS NO pasan por el SCP: cada NF (y el propio SCP) usa
+  # su cliente NRF directo para registrarse, hacer heartbeat y suscribirse.
+  direct_services: [nnrf-nfm]
+
+services:
+  nnrf-nfm:
+    producer: nrf
+    spec: TS 29.510
+    openapi: TS29510_Nnrf_NFManagement.yaml
+    # TS 23.502 Tabla 5.2.7.1-1: lo consumen todas las NF (registro/heartbeat).
+    consumers: [amf, smf, ausf, udm, udr, pcf, nssf, bsf, scp]
+    nota: Registro (PUT), heartbeat (PATCH), baja (DELETE) y suscripciones. Directo, sin SCP.
+
+  nnrf-disc:
+    producer: nrf
+    spec: TS 29.510
+    openapi: TS29510_Nnrf_NFDiscovery.yaml
+    # TS 23.502 Tabla 5.2.7.1-1: todas las NF y el SCP. Con Modelo D solo el SCP
+    # llega al NRF; las NF delegan el descubrimiento.
+    consumers: [amf, smf, ausf, udm, udr, pcf, nssf, bsf, scp]
+    nota: Con descubrimiento delegado el único cliente real del NRF es el SCP.
+
+  nausf-auth:
+    producer: ausf
+    spec: TS 29.509
+    openapi: TS29509_Nausf_UEAuthentication.yaml
+    consumers: [amf]  # TS 23.502 Tabla 5.2.10.1-1
+
+  nudm-ueau:
+    producer: udm
+    spec: TS 29.503
+    openapi: TS29503_Nudm_UEAU.yaml
+    consumers: [ausf]  # TS 23.502 Tabla 5.2.3.1-1
+
+  nudm-uecm:
+    producer: udm
+    spec: TS 29.503
+    openapi: TS29503_Nudm_UECM.yaml
+    consumers: [amf, smf]  # TS 23.502 Tabla 5.2.3.1-1 (también SMSF, NEF, GMLC: no en el testbed)
+
+  nudm-sdm:
+    producer: udm
+    spec: TS 29.503
+    openapi: TS29503_Nudm_SDM.yaml
+    consumers: [amf, smf]  # TS 23.502 Tabla 5.2.3.1-1 (también SMSF, NEF, GMLC: no en el testbed)
+
+  nudr-dr:
+    producer: udr
+    spec: TS 29.504
+    openapi: TS29504_Nudr_DR.yaml
+    consumers: [udm, pcf]  # TS 23.502 Tabla 5.2.12.1-1 (también NEF: no en el testbed)
+    nota: Extracto limitado a /subscription-data y /policy-data (lo que usan UDM y PCF).
+
+  nsmf-pdusession:
+    producer: smf
+    spec: TS 29.502
+    openapi: TS29502_Nsmf_PDUSession.yaml
+    consumers: [amf]  # TS 23.502 Tabla 5.2.8.1-1 (también I-SMF/V-SMF: no en el testbed)
+
+  namf-comm:
+    producer: amf
+    spec: TS 29.518
+    openapi: TS29518_Namf_Communication.yaml
+    # TS 23.502 Tabla 5.2.2.1-1: SMF (N1N2MessageTransfer), PCF, UDM, otro AMF,
+    # SMSF, LMF, NEF... En Open5GS solo el SMF lo ejercita.
+    consumers: [smf, pcf, udm]
+
+  npcf-am-policy-control:
+    producer: pcf
+    spec: TS 29.507
+    openapi: TS29507_Npcf_AMPolicyControl.yaml
+    consumers: [amf]  # TS 23.502 Tabla 5.2.5.1-1
+
+  npcf-smpolicycontrol:
+    producer: pcf
+    spec: TS 29.512
+    openapi: TS29512_Npcf_SMPolicyControl.yaml
+    consumers: [smf]  # TS 23.502 Tabla 5.2.5.1-1
+
+  nnssf-nsselection:
+    producer: nssf
+    spec: TS 29.531
+    openapi: TS29531_Nnssf_NSSelection.yaml
+    consumers: [amf]  # TS 23.502 Tabla 5.2.16.1-1 (también NSSF de otra PLMN: no aplica)
+
+  nbsf-management:
+    producer: bsf
+    spec: TS 29.521
+    openapi: TS29521_Nbsf_Management.yaml
+    consumers: [pcf]  # TS 23.502 Tabla 5.2.13.1-1 (también NEF/AF: no en el testbed)
+
+# Notificaciones (callbacks): el productor del servicio actúa como cliente HTTP
+# hacia el consumidor. No están en 'paths' del OpenAPI (van en 'callbacks'), y la
+# URI la elige el receptor al suscribirse. Las rutas son las que construye
+# Open5GS. 'route' indica si pasan por el SCP; marcadas 'no verificado' hasta
+# contrastarlas con flujos reales (ver docs/pruebas-fase5.md).
+callbacks:
+  - name: nnrf-nfm-status-notify
+    notifier: nrf
+    receivers: [amf, smf, ausf, udm, udr, pcf, nssf, bsf, scp]
+    method: POST
+    path: /nnrf-nfm/v1/nf-status-notify
+    route: direct
+    nota: nfStatusNotificationUri que registra cada NF de Open5GS (TS 29.510 §5.2.2.5).
+  - name: npcf-sm-policy-notify
+    notifier: pcf
+    receivers: [smf]
+    method: POST
+    path: /nsmf-callback/v1/sm-policy-notify/{smContextRef}
+    route: direct
+    nota: Ruta Open5GS (TS 29.512 §4.2.4). Paso por SCP no verificado.
+  - name: npcf-am-policy-notify
+    notifier: pcf
+    receivers: [amf]
+    method: POST
+    path: /namf-callback/v1/am-policy-notify/{polAssoId}
+    route: direct
+    nota: Ruta Open5GS (TS 29.507 §4.2.4). Paso por SCP no verificado.
+  - name: nudm-uecm-dereg-notify
+    notifier: udm
+    receivers: [amf]
+    method: POST
+    path: /namf-callback/v1/{supi}/dereg-notify
+    route: direct
+    nota: Ruta Open5GS (TS 29.503 §5.3.2.5). Paso por SCP no verificado.

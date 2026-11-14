@@ -1,0 +1,44 @@
+# Generado por tools/spec2policy. Visibilidad L7 de la SBI para capturar flujos
+# con `hubble observe -o jsonpb` (método + path). Regla http vacía = permitir
+# todo lo que llegue de 5g-cp al puerto 7777, pero vía proxy.
+# No restringe tráfico entre NF; combínala con default-deny y el resto de capas.
+# Con mTLS activo (TS 33.501 §13.1) el proxy ve bytes cifrados: sin L7.
+# Estado: NO verificado en clúster.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: spec2policy-sbi-l7-visibility
+  namespace: 5g-cp
+  labels:
+    app.kubernetes.io/part-of: spec2policy
+    cib46.io/managed: 'true'
+  annotations:
+    description: Visibilidad L7 de la SBI (sin restricción) para capturar método y path con Hubble en
+      modo sin TLS.
+spec:
+  endpointSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - amf
+          - ausf
+          - bsf
+          - nrf
+          - nssf
+          - pcf
+          - scp
+          - smf
+          - udm
+          - udr
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - {}

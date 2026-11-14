@@ -1,0 +1,70 @@
+# Extracto generado por scripts/make_extracts.py desde jdegre/5GC_APIs@06137ac51e2cc19a6d767bb63a27563d27841b3a
+# Fichero origen: TS29502_Nsmf_PDUSession.yaml. Solo se conservan info, servers y paths con
+# método/operationId/summary; se eliminan esquemas, parámetros y respuestas.
+# NO EDITAR A MANO: regenerar con el script.
+openapi: 3.0.0
+info:
+  title: Nsmf_PDUSession
+  version: 1.2.6
+externalDocs:
+  description: 3GPP TS 29.502 V17.12.0; 5G System; Session Management Services; Stage 3
+  url: https://www.3gpp.org/ftp/Specs/archive/29_series/29.502/
+servers:
+  - url: '{apiRoot}/nsmf-pdusession/v1'
+    variables:
+      apiRoot:
+        default: https://example.com
+        description: 'apiRoot as defined in clause 4.4 of 3GPP TS 29.501. The sm-contexts and pdu-sessions
+          resources can be distributed on different processing instances or hosts. Thus the authority
+          and/or deployment-specific string of the apiRoot of the created individual sm context and pdu-session
+          resources'' URIs may differ from the authority and/or deployment-specific string of the apiRoot
+          of the sm-contexts and pdu-sessions collections'' URIs.
+
+          '
+paths:
+  /sm-contexts:
+    post:
+      operationId: PostSmContexts
+      summary: Create SM Context
+  /sm-contexts/{smContextRef}/retrieve:
+    post:
+      operationId: RetrieveSmContext
+      summary: Retrieve SM Context
+  /sm-contexts/{smContextRef}/modify:
+    post:
+      operationId: UpdateSmContext
+      summary: Update SM Context
+  /sm-contexts/{smContextRef}/release:
+    post:
+      operationId: ReleaseSmContext
+      summary: Release SM Context
+  /sm-contexts/{smContextRef}/send-mo-data:
+    post:
+      operationId: SendMoData
+      summary: Send MO Data
+  /pdu-sessions:
+    post:
+      operationId: PostPduSessions
+      summary: Create
+  /pdu-sessions/{pduSessionRef}/modify:
+    post:
+      operationId: UpdatePduSession
+      summary: Update (initiated by V-SMF or I-SMF)
+  /pdu-sessions/{pduSessionRef}/release:
+    post:
+      operationId: ReleasePduSession
+      summary: Release
+  /pdu-sessions/{pduSessionRef}/retrieve:
+    post:
+      operationId: RetrievePduSession
+      summary: Retrieve
+  /pdu-sessions/{pduSessionRef}/transfer-mo-data:
+    post:
+      operationId: TransferMoData
+      summary: Transfer MO Data
+x-spec2policy:
+  source: jdegre/5GC_APIs
+  commit: 06137ac51e2cc19a6d767bb63a27563d27841b3a
+  file: TS29502_Nsmf_PDUSession.yaml
+  resolved_refs: []
+  path_prefixes: []
