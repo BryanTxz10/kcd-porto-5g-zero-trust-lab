@@ -115,7 +115,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Compilar todos los scripts (BLOQUEA)
-        run: python -m compileall -q attack-scripts bootstrap data-processing
+        run: python -m compileall -q attack-scripts bootstrap
       - name: ruff (lint de errores, no bloquea)
         run: |
           pip install ruff

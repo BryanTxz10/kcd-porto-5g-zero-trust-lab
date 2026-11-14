@@ -7,7 +7,7 @@
 >
 > Alcance de esta revisión: se realizó **únicamente sobre el contenido del
 > repositorio** (`cilium-policies/`, `attack-scripts/`, `monitoring/`,
-> `data-processing/`, `helm-values/`, `spire-config/`, `ueransim-config/`). No
+> `legacy/data-processing/`, `helm-values/`, `spire-config/`, `ueransim-config/`). No
 > se tuvo acceso a las bitácoras del proyecto de Claude Desktop ni a los datos
 > crudos (`*.txt`, `*.csv`), que están excluidos por `.gitignore`. Donde una
 > observación dependa de datos que no están en el repo, se indica explícitamente
@@ -82,7 +82,7 @@ la tesis, y termina con una **lista priorizada de acciones**.
 *(¿las variables miden realmente lo que dicen medir?)*
 
 ### RM-01 🔴 La verificación de disponibilidad no ejercita el plano que las políticas afectan
-**Evidencia:** en `transition-to-c0/c1/c2/c3.sh` la única prueba de que "el core
+**Evidencia:** en `legacy/transitions/transition-to-c0/c1/c2/c3.sh` la única prueba de que "el core
 legítimo sigue operativo" es:
 
 ```bash
@@ -250,7 +250,7 @@ por no cumplir normalidad* es contradictorio y un jurado estadístico lo señala
 - **Delta de Cliff**, o
 - El **effect size del lenguaje común / AUC** = `U/(n1·n2)`.
 
-> Implementación lista en `bootstrap/analysis/effect_sizes.py`.
+> Implementación lista en `legacy/analysis/effect_sizes.py`.
 
 ### RM-04 🔴 La lógica de selección de prueba documentada no está implementada
 **Evidencia:** el docstring dice *"Mann-Whitney U … aplicada cuando no se cumple
@@ -310,7 +310,7 @@ a α=0.05, **sin corregir** y **sin un test ómnibus previo**.
 reportar **todas** las comparaciones relevantes (incluida C0-C3) con p ajustado,
 tamaño de efecto rango-biserial e **IC del 95 %**.
 
-> Implementado en `bootstrap/analysis/omnibus_posthoc.py`.
+> Implementado en `legacy/analysis/omnibus_posthoc.py`.
 
 ### RM-08 🟠 Shapiro-Wilk no informa con n=6; posible pseudo-replicación en IDR
 **Dos cosas:**

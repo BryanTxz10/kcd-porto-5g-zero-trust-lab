@@ -78,7 +78,7 @@ node_encryption: false
 # --- RAN simulada ---
 ueransim_version: "v3.2.6"
 
-# --- Imágenes (PINNEA POR DIGEST para calidad-paper; ver REPRODUCIBILITY.md) ---
+# --- Imágenes (PINNEA POR DIGEST para calidad-paper; ver legacy/REPRODUCIBILITY.md) ---
 netshoot_image: "nicolaka/netshoot:v0.13"
 ueransim_gnb_image: "towards5gs/ueransim-gnb:v3.2.6"
 ueransim_ue_image: "towards5gs/ueransim-ue:v3.2.6"

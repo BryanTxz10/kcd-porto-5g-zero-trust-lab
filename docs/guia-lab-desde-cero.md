@@ -992,7 +992,7 @@ La rama `lab-v2` las corrige:
 | `gnb.yaml`, Multus | N2 iba por macvlan (10.10.0.20). **Cilium no ve ese tráfico**, así que las políticas 03 y 05 no aplicaban al N2 real | N2 y N3 por la red de pods de Cilium; Multus queda opcional y apagado |
 | `amf-n2-headless.yaml` (nuevo) | Cilium 1.15 **no soporta SCTP sobre la VIP de un Service con KPR** (doc oficial de SCTP) | Service headless: el gNB abre SCTP directo al pod del AMF |
 | `c0-allow-all-anchor.yaml` | `ingress: [{}]` / `egress: [{}]` en Cilium **no es allow-all, es deny-all** (es el patrón "default deny" de los ejemplos oficiales de Cilium) | `fromEntities: [all]` / `toEntities: [all]` |
-| `transition-to-c1.sh` | Nunca borraba el ancla de C0: C1 a C3 corrían encima de ella | La borra antes de aplicar C1 (y usa `make condition`) |
+| `legacy/transitions/transition-to-c1.sh` | Nunca borraba el ancla de C0: C1 a C3 corrían encima de ella | La borra antes de aplicar C1 (y usa `make condition`) |
 | `ansible.cfg` | `stdout_callback = yaml` ya no existe en Ansible reciente | `callback_result_format = yaml` |
 | `site.yml` | Sin `--node-ip`, pool de pods de Cilium por defecto `10.0.0.0/8` | `--node-ip` explícito y pool `10.42.0.0/16` |
 | `Makefile` | Necesitaba instalar `kustomize` aparte | Usa `kubectl kustomize`; nuevos `make subscribers` y `make ran-restart` |

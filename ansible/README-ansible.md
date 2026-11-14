@@ -233,4 +233,4 @@ kubectl get ciliumnetworkpolicies -A
 Puedes probar el playbook contra **una sola máquina** poniéndola en `[master]`
 y dejando `[workers]` vacío (será un clúster de 1 nodo). Sirve para validar que
 todo instala, aunque **no** prueba el enforcement entre nodos (para eso necesitas
-≥2 nodos; ver `docs/protocolo-experimental.md §4-bis`).
+≥2 nodos; ver `legacy/docs/protocolo-experimental.md §4-bis`).
