@@ -11,9 +11,9 @@ updates:
       prefix: "ci"
     labels: ["ci", "dependencies"]
 
-  # Dependencias Python del procesamiento estadístico (archivado en legacy/).
+  # Dependencias Python fijadas de spec2policy.
   - package-ecosystem: "pip"
-    directory: "/legacy/data-processing"
+    directory: "/tools/spec2policy"
     schedule:
       interval: "weekly"
     commit-message:

@@ -156,7 +156,6 @@ Todo se controla desde `ansible/group_vars/all.yml`:
 | `node_encryption` | `false` | WireGuard entre nodos | [fase 3](pruebas-fase3.md) |
 | `sbi_tls` | `false` | mTLS en la SBI con una CA propia generada en el master | [fase 4](pruebas-fase4.md) |
 | `deploy_tetragon` | `true` | Tetragon y sus políticas | [fase 6](pruebas-fase6.md) |
-| `deploy_spire` | `true` | SPIRE integrado en Cilium (heredado; no es foco del lab) | — |
 
 Orden recomendado: todo como viene, comprobar, y luego activar de uno en uno
 `deploy_multus`, `sbi_tls` y `node_encryption`.
@@ -179,7 +178,7 @@ descargas.
 | 2 | k3s server sin flannel ni kube-proxy | `sudo journalctl -u k3s -n 50` |
 | 3 | k3s agent en los workers | `sudo journalctl -u k3s-agent -n 50` en el worker |
 | 3b | rutas de CNI y plugins ipvlan/static (solo con Multus) | la salida de *Mostrar las rutas detectadas* |
-| 4 | Helm, Cilium, SPIRE, Multus y NAD, Kyverno, metrics-server, Open5GS (UPF y plano de control), gNB y UE, `sbi-probe`, Tetragon y las políticas de Cilium | §14 |
+| 4 | Helm, Cilium, Multus y NAD, Kyverno, metrics-server, Open5GS (UPF y plano de control), gNB y UE, `sbi-probe`, Tetragon y las políticas de Cilium | §14 |
 
 Al final, `PLAY RECAP` con `failed=0` y un mensaje con el modo desplegado.
 
@@ -293,7 +292,7 @@ Comprobaciones y demos:
   por N6 y `tcpdump -ni n6` en dn-gw. Hubble ya no ve N2 ni N3.
 - [`pruebas-fase2.md`](pruebas-fase2.md): un pod que pide la red `access` es
   rechazado por el API server (`kubectl apply -f
-  attack-scripts/deploy-attacker-access.yaml`), y las MultiNetworkPolicy.
+  attacks/attacker-access.yaml`), y las MultiNetworkPolicy.
 
 Si algo falla, vuelve al snapshot `una-red-ok`. Poner `deploy_multus: false` y
 relanzar no desinstala Multus ni Kyverno.
@@ -409,7 +408,7 @@ kubectl -n <ns> logs <pod> --previous
 |---|---|
 | `prereqs` | paquetes, SCTP, swap |
 | `k3s` | k3s server y agents |
-| `cilium`, `spire` | Cilium (y SPIRE integrado) |
+| `cilium` | Cilium |
 | `dn-gw` | router N6 |
 | `multus` | rutas de CNI, plugins, Multus, NAD y patches del UPF y el gNB |
 | `admission` | Kyverno y la política de redes dedicadas |
@@ -422,7 +421,5 @@ kubectl -n <ns> logs <pod> --previous
 
 Ejemplo: `ansible-playbook site.yml -K --tags open5gs,ueransim`.
 
-El despliegue por bash (`make up`, scripts en `bootstrap/`) se conserva como
-alternativa para el modo de una red; su guía es de la etapa anterior y está en
-[`legacy/docs/guia-reproducibilidad.md`](../legacy/docs/guia-reproducibilidad.md). Las
-redes dedicadas, la admisión, el mTLS y Tetragon solo están en Ansible.
+Todo el despliegue es con Ansible: `make up` es un atajo de
+`ansible-playbook site.yml -K`.

@@ -1,4 +1,4 @@
-# Normalización de fin de línea — reproducibilidad del testbed CIB46.
+# Normalización de fin de línea del lab.
 # Sin esto, un contribuyente en Windows (core.autocrlf=true) puede commitear
 # CRLF y romper los intérpretes de los scripts bash en las VMs Ubuntu
 # ("#!/usr/bin/env bash\r: bad interpreter"). Forzamos LF en todo lo que se

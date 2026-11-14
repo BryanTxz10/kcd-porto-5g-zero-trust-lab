@@ -70,10 +70,11 @@ cilium policy get | head                                # o: kubectl get cnp -n 
 kubectl -n 5g-ran logs deploy/ueransim-ue | tail        # el UE debe seguir registrándose
 ```
 
-Las CNP de `spec2policy` son **aditivas** a las de `cilium-policies/` (etiqueta
+Las CNP de `spec2policy` son **aditivas** a las de `k8s/cilium/` (etiqueta
 `app.kubernetes.io/part-of: spec2policy`); Cilium une los permisos de todas las políticas
 que seleccionan un endpoint, así que para medir el efecto real hay que retirar antes las
-reglas L7 equivalentes de la condición activa (C2/C3) o aplicarlas en un clúster limpio.
+reglas L7 equivalentes del lab (`k8s/cilium/base/02-nrf-sbi-l7.yaml`) o aplicarlas en un
+clúster limpio.
 Pendiente de probar: que el regex `(\?.*)?` y `[^/?]+` casen como se espera en el Envoy
 de Cilium 1.15.4 y que Open5GS 2.7.5 use las mismas versiones de API que Rel-17 (en
 particular `/nudr-dr/v2`; si usa `/nudr-dr/v1`, saldrá como `FUERA_DEL_ESTANDAR`).
@@ -95,7 +96,7 @@ En 1.15 hay dos formas de conseguirlo:
 - **Anotación** (alternativa, deprecated):
   `kubectl -n 5g-cp annotate pod -l app.kubernetes.io/instance=open5gs-cp policy.cilium.io/proxy-visibility="<Ingress/7777/TCP/HTTP>"`.
 
-Después, igual que hace `bootstrap/run-experiment.sh`:
+Después, captura los flujos mientras generas tráfico:
 
 ```bash
 hubble observe --namespace 5g-cp -f -o jsonpb > capturas/sbi_$(date -u +%Y%m%dT%H%M%SZ).jsonl &

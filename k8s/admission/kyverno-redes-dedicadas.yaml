@@ -1,0 +1,214 @@
+# kcd-multus-network-guard — quién puede conectarse a las redes dedicadas
+# (solo con deploy_multus: true; la aplica el playbook).
+#
+# Cilium no hace cumplir políticas en las interfaces de Multus. Pedir la red
+# 'access' (radio: N2 y N3) o 'n6' (salida de los UE) es escribir una
+# anotación en el pod; sin control, cualquier pod que pueda crearse en el
+# clúster se sentaría en la red de la radio. Aquí eso pasa a ser una decisión
+# de ADMISIÓN: el API server rechaza el pod antes de que exista.
+#
+#   5g-cp  -> solo el AMF puede pedir 'access' (n2 = 10.10.0.10)
+#   5g-ran -> solo el gNB puede pedir 'access' (access = 10.10.0.20)
+#   5g-up  -> solo el UPF puede pedir 'access' y 'n6' (10.10.0.30, 10.10.6.30)
+#   resto  -> nadie pide redes de Multus
+#
+# Además: anotación solo en formato JSON (la forma corta "access,n6" se
+# rechaza para poder inspeccionarla), sin referencias a NAD de otro
+# namespace ("namespace": "5g-up" desde 5g-ran), y solo pods creados por un
+# controlador (Deployment/StatefulSet/...): un Pod suelto, aunque copie las
+# etiquetas del AMF, no puede pedir una red dedicada.
+#
+# Las IP deben coincidir con ansible/group_vars/all.yml. Ansible aplica esta
+# política y comprueba esa coincidencia antes (site.yml, tag admission).
+#
+# ALCANCE: decide QUÉ pide un pod, no QUIÉN es el administrador. Quien tenga
+# credenciales de administrador puede crear un Deployment con las etiquetas
+# del AMF y sus pods pasarán; eso lo cubre RBAC, no la admisión.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: kcd-multus-network-guard
+  annotations:
+    policies.kyverno.io/title: Admisión a las redes dedicadas (Multus)
+    policies.kyverno.io/description: >-
+      Solo el AMF, el gNB y el UPF pueden pedir las redes access y n6 de
+      Multus, con su IP fija y desde su namespace. Conectarse a la red de la
+      radio es una decisión de admisión.
+    # Las reglas se escriben para Pod y se comprueban en el pod que crea el
+    # controlador; no se generan reglas automáticas para Deployment & co.
+    pod-policies.kyverno.io/autogen-controllers: none
+spec:
+  validationFailureAction: Enforce
+  background: false            # usa request.userInfo
+  rules:
+    - name: anotacion-en-formato-json
+      match:
+        any:
+          - resources: { kinds: [Pod], operations: [CREATE, UPDATE] }
+      preconditions:
+        all:
+          - key: "{{ request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\" || '' }}"
+            operator: NotEquals
+            value: ""
+      validate:
+        message: >-
+          La anotación k8s.v1.cni.cncf.io/networks debe estar en formato JSON
+          (lista de objetos) para poder validarla. Pod rechazado.
+        deny:
+          conditions:
+            all:
+              - key: "{{ starts_with(request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\", '[') }}"
+                operator: Equals
+                value: false
+
+    - name: redes-dedicadas-solo-en-el-core
+      match:
+        any:
+          - resources: { kinds: [Pod], operations: [CREATE, UPDATE] }
+      exclude:
+        any:
+          - resources: { namespaces: [5g-cp, 5g-ran, 5g-up] }
+      preconditions:
+        all:
+          - key: "{{ request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\" || '' }}"
+            operator: NotEquals
+            value: ""
+      validate:
+        message: >-
+          Solo los namespaces 5g-cp, 5g-ran y 5g-up pueden pedir redes de
+          Multus. Pod rechazado.
+        deny: {}
+
+    - name: sin-referencias-a-otro-namespace
+      match:
+        any:
+          - resources: { kinds: [Pod], operations: [CREATE, UPDATE], namespaces: [5g-cp, 5g-ran, 5g-up] }
+      preconditions:
+        all:
+          - key: "{{ starts_with(request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\" || '', '[') }}"
+            operator: Equals
+            value: true
+      validate:
+        message: >-
+          Un pod solo puede usar los NAD de su propio namespace. Pod rechazado.
+        deny:
+          conditions:
+            any:
+              - key: "{{ parse_json(request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\")[?namespace].namespace }}"
+                operator: AnyNotIn
+                value: ["{{ request.namespace }}"]
+
+    - name: solo-pods-de-un-controlador
+      match:
+        any:
+          - resources: { kinds: [Pod], operations: [CREATE], namespaces: [5g-cp, 5g-ran, 5g-up] }
+      preconditions:
+        all:
+          - key: "{{ request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\" || '' }}"
+            operator: NotEquals
+            value: ""
+      validate:
+        message: >-
+          Un Pod creado directamente no puede pedir redes dedicadas: solo los
+          pods de un Deployment/StatefulSet/DaemonSet/Job. Pod rechazado
+          (conectarse a la red de la radio es una decisión de admisión).
+        deny:
+          conditions:
+            all:
+              - key: "{{ request.userInfo.username }}"
+                operator: AnyNotIn
+                value:
+                  # k3s puede crear los pods con la identidad del controller
+                  # manager o con la SA de cada controlador: se aceptan ambas.
+                  - system:kube-controller-manager
+                  - system:serviceaccount:kube-system:replicaset-controller
+                  - system:serviceaccount:kube-system:statefulset-controller
+                  - system:serviceaccount:kube-system:daemon-set-controller
+                  - system:serviceaccount:kube-system:job-controller
+
+    - name: access-en-5g-cp-solo-amf
+      match:
+        any:
+          - resources: { kinds: [Pod], operations: [CREATE, UPDATE], namespaces: [5g-cp] }
+      preconditions:
+        all:
+          - key: "{{ starts_with(request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\" || '', '[') }}"
+            operator: Equals
+            value: true
+      validate:
+        message: >-
+          En 5g-cp solo el AMF puede pedir la red 'access', como interfaz n2 y
+          con la IP 10.10.0.10/24. Pod rechazado.
+        deny:
+          conditions:
+            any:
+              - key: "{{ request.object.metadata.labels.\"app.kubernetes.io/name\" || '' }}"
+                operator: NotEquals
+                value: amf
+              - key: "{{ parse_json(request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\")[].name }}"
+                operator: AnyNotIn
+                value: [access]
+              - key: "{{ parse_json(request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\")[].interface }}"
+                operator: AnyNotIn
+                value: [n2]
+              - key: "{{ parse_json(request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\")[].ips[] }}"
+                operator: AnyNotIn
+                value: [10.10.0.10/24]
+
+    - name: access-en-5g-ran-solo-gnb
+      match:
+        any:
+          - resources: { kinds: [Pod], operations: [CREATE, UPDATE], namespaces: [5g-ran] }
+      preconditions:
+        all:
+          - key: "{{ starts_with(request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\" || '', '[') }}"
+            operator: Equals
+            value: true
+      validate:
+        message: >-
+          En 5g-ran solo el gNB puede pedir la red 'access', como interfaz
+          access y con la IP 10.10.0.20/24. Pod rechazado.
+        deny:
+          conditions:
+            any:
+              - key: "{{ request.object.metadata.labels.\"app.kubernetes.io/name\" || '' }}"
+                operator: NotEquals
+                value: ueransim-gnb
+              - key: "{{ parse_json(request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\")[].name }}"
+                operator: AnyNotIn
+                value: [access]
+              - key: "{{ parse_json(request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\")[].interface }}"
+                operator: AnyNotIn
+                value: [access]
+              - key: "{{ parse_json(request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\")[].ips[] }}"
+                operator: AnyNotIn
+                value: [10.10.0.20/24]
+
+    - name: access-y-n6-en-5g-up-solo-upf
+      match:
+        any:
+          - resources: { kinds: [Pod], operations: [CREATE, UPDATE], namespaces: [5g-up] }
+      preconditions:
+        all:
+          - key: "{{ starts_with(request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\" || '', '[') }}"
+            operator: Equals
+            value: true
+      validate:
+        message: >-
+          En 5g-up solo el UPF puede pedir 'access' (n3, 10.10.0.30/24) y 'n6'
+          (n6, 10.10.6.30/24). Pod rechazado.
+        deny:
+          conditions:
+            any:
+              - key: "{{ request.object.metadata.labels.\"app.kubernetes.io/name\" || '' }}"
+                operator: NotEquals
+                value: upf
+              - key: "{{ parse_json(request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\")[].name }}"
+                operator: AnyNotIn
+                value: [access, n6]
+              - key: "{{ parse_json(request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\")[].interface }}"
+                operator: AnyNotIn
+                value: [n3, n6]
+              - key: "{{ parse_json(request.object.metadata.annotations.\"k8s.v1.cni.cncf.io/networks\")[].ips[] }}"
+                operator: AnyNotIn
+                value: [10.10.0.30/24, 10.10.6.30/24]

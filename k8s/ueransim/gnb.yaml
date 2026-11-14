@@ -1,0 +1,39 @@
+# gnb.yaml
+# Configuracion del gNB simulado con UERANSIM v3.2.6.
+# PLMN de prueba: MCC 999 / MNC 70.
+#
+# Los marcadores __X__ los reemplaza el contenedor al arrancar (ver
+# k8s/manifests/ueransim.yaml):
+#   __POD_IP__  IP del pod en la red de Cilium (radio simulada, RLS con el UE)
+#   __N2_IP__   N2_IP del entorno; si no existe, la IP del pod
+#   __N3_IP__   N3_IP del entorno; si no existe, la IP del pod
+#   __AMF_N2__  AMF_N2_ADDR del entorno; si no existe, el Service headless
+# Una sola red (deploy_multus: false): todo usa la IP del pod y Cilium ve N2/N3.
+# Fase 1 (deploy_multus: true): Ansible añade N2_IP/N3_IP = 10.10.0.20 (ipvlan
+# sobre la red access) y AMF_N2_ADDR = 10.10.0.10; N2 y N3 salen de Cilium.
+
+mcc: '999'
+mnc: '70'
+
+nci: '0x000000010'
+idLength: 32
+tac: 1
+
+linkIp: __POD_IP__
+ngapIp: __N2_IP__
+gtpIp: __N3_IP__
+
+# Plan B: AMF por Service HEADLESS (resuelve a la IP del pod, SCTP pod->pod).
+# Cilium 1.15 no soporta SCTP sobre la VIP de un Service con KPR, por eso no
+# se usa open5gs-cp-amf-ngap (ver k8s/manifests/amf-n2-headless.yaml).
+# UERANSIM resuelve el nombre una vez al arrancar.
+# Fase 1: la IP fija del AMF en la red access (10.10.0.10).
+amfConfigs:
+  - address: __AMF_N2__
+    port: 38412
+
+slices:
+  - sst: 1
+    sd: 0x111111
+
+ignoreStreamIds: true

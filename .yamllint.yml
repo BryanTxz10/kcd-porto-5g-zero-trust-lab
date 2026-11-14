@@ -1,4 +1,4 @@
-# Configuración de yamllint para el CI del testbed CIB46.
+# Configuración de yamllint para el CI del lab.
 # Base: perfil "relaxed"; endurecemos solo lo que importa para reproducibilidad.
 extends: relaxed
 

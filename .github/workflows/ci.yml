@@ -1,8 +1,7 @@
 name: CI — Validación de despliegue
 
-# Valida TODO lo que se ejecuta o se aplica en el clúster antes de desplegar:
-# scripts bash, playbook Ansible, overlays Kustomize (C0–C3) y scripts Python.
-# Es la red de seguridad del despliegue automatizado (make up / ansible-playbook).
+# Valida todo lo que se ejecuta o se aplica en el clúster antes de desplegar:
+# scripts bash, playbook Ansible, políticas (Kustomize) y scripts Python.
 
 on:
   push:
@@ -32,16 +31,14 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: shellcheck (findings informativos, no bloquea)
         run: |
-          mapfile -t files < <(find bootstrap cilium-policies attack-scripts \
-            monitoring helm-values -name '*.sh' | sort)
+          mapfile -t files < <(find scripts attacks k8s -name '*.sh' | sort)
           shellcheck --severity=error "${files[@]}" || true
       - name: bash -n (sintaxis, BLOQUEA)
         run: |
           rc=0
           while IFS= read -r f; do
             if bash -n "$f"; then echo "ok   $f"; else echo "FAIL $f"; rc=1; fi
-          done < <(find bootstrap cilium-policies attack-scripts \
-            monitoring helm-values -name '*.sh' | sort)
+          done < <(find scripts attacks k8s -name '*.sh' | sort)
           exit $rc
       - name: make lint
         run: make lint
@@ -76,7 +73,7 @@ jobs:
         run: ansible-lint ansible/site.yml
 
   validate-manifests:
-    name: Manifiestos Kustomize (C0–C3)
+    name: Políticas (kustomize build)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -89,27 +86,8 @@ jobs:
           curl -sSfL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
             | tar -xz -C /usr/local/bin kustomize
           kustomize version
-      - name: kustomize build de cada condición (BLOQUEA)
-        run: |
-          rc=0
-          for c in c0 c1 c2 c3; do
-            echo "== build $c =="
-            if kustomize build --load-restrictor=LoadRestrictionsNone \
-              "cilium-policies/conditions/$c" >/dev/null; then
-              echo "ok   $c"
-            else
-              echo "FAIL $c"; rc=1
-            fi
-          done
-          for d in cilium-policies/lab/una-red cilium-policies/lab/multus cilium-policies/lab/una-red-tls cilium-policies/lab/multus-tls multinetwork-policies tetragon-policies; do
-            echo "== build $d =="
-            if kustomize build "$d" >/dev/null; then
-              echo "ok   $d"
-            else
-              echo "FAIL $d"; rc=1
-            fi
-          done
-          exit $rc
+      - name: kustomize build de las políticas (BLOQUEA)
+        run: make kustomize-check
 
   lint-python:
     name: Python (compilación + ruff)
@@ -123,18 +101,18 @@ jobs:
         with:
           python-version: "3.12"
       - name: Compilar todos los scripts (BLOQUEA)
-        run: python -m compileall -q attack-scripts bootstrap
+        run: python -m compileall -q attacks scripts
       - name: Matriz de políticas en los dos modos (BLOQUEA)
         run: |
           pip install pyyaml==6.0.2
-          python bootstrap/checks/policy-matrix.py .
+          python scripts/policy-matrix.py .
       - name: ruff (lint de errores, no bloquea)
         run: |
           pip install ruff
           ruff check --select E9,F63,F7,F82 . || true
 
   spec2policy:
-    name: Fase 5 · spec2policy (ruff + pytest + salida al día)
+    name: spec2policy (ruff + pytest + salida al día)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:

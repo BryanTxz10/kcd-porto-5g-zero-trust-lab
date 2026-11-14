@@ -1,0 +1,164 @@
+# open5gs-values.yaml
+# Valores para el chart de Gradiant (oci://registry-1.docker.io/gradiantcharts/open5gs,
+# versión fijada en ansible/group_vars/all.yml) con Open5GS 2.7.x sobre k3s.
+# Las claves (hss/mme/pcrf/sgwc/sgwu, guamiList, nsiList, mongodb) son las del
+# chart de Gradiant.
+# PLMN de prueba: MCC 999 / MNC 70 (rango reservado para testbeds 3GPP).
+#
+# ─── Colocación y separación de planos ─────────────────────────────────────
+# COLOCACIÓN POR PLANO: como un operador reparte sus sitios,
+#   · worker1 = SITIO CENTRAL → plano de control 5G (NRF, AMF, SMF, ...) + MongoDB
+#   · worker2 = SITIO DE BORDE → UPF (plano de usuario), en SU PROPIO release y
+#     namespace (5g-up). Ver k8s/helm-values/open5gs-upf-values.yaml.
+# SEPARACIÓN DE PLANOS: este release (open5gs-cp, ns 5g-cp)
+# YA NO despliega el UPF. El UPF es un segundo release del mismo chart
+# (open5gs-up, ns 5g-up), con su propio ciclo de vida, como hacen los operadores
+# (control en el sitio central, usuario en el borde). El SMF lo alcanza por N4
+# cruzando de namespace y de nodo.
+# Así N2 (gNB→AMF) y N4 (SMF→UPF) cruzan SIEMPRE de nodo y cada ataque nacido en
+# el borde recorre el camino difícil para el defensor. El gNB, el UE y los pods
+# de ataque se fijan a worker2 en sus propios manifiestos.
+#   ⚠ AJUSTA 'node-worker1'/'node-worker2' al hostname real de tus nodos (los de
+#     ansible/inventory/hosts.ini). Si worker1 se queda sin RAM, súbelo a 5 GB y
+#     baja worker2 a 3 GB antes que mezclar planos.
+# WEBUI apagada: el suscriptor lo inserta 'populate'; la WebUI es una
+#   consola de administración con escritura a la base y no hace falta.
+# ────────────────────────────────────────────────────────────────────────────
+
+# networkPolicy nativa del chart deshabilitada a propósito: el enforcement de
+# segmentación, identidad, autorización y EGRESS se hace con CiliumNetworkPolicy
+# (ver k8s/cilium/), no con el NetworkPolicy nativo de Kubernetes.
+networkPolicy:
+  enabled: false
+
+# Suscriptor de prueba. Lo inserta el Deployment "<release>-populate" del
+# chart al arrancar. Formato: add_ue_with_slice <IMSI> <K> <OPc> <DNN> <SST> <SD>
+# Deben coincidir con k8s/ueransim/ue.yaml.
+populate:
+  enabled: true
+  nodeSelector: { kubernetes.io/hostname: node-worker1 }
+  initCommands:
+    - open5gs-dbctl add_ue_with_slice 999700000000001 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet 1 111111
+
+global:
+  mcc: "999"
+  mnc: "70"
+
+hss:
+  enabled: false
+mme:
+  enabled: false
+pcrf:
+  enabled: false
+sgwc:
+  enabled: false
+sgwu:
+  enabled: false
+# SEPP (roaming entre PLMN) no se usa en una red privada de un solo PLMN.
+sepp:
+  enabled: false
+
+# ─── Plano de control 5G → worker1 (sitio central) ─────────────────────────
+nrf:
+  replicaCount: 1
+  nodeSelector: { kubernetes.io/hostname: node-worker1 }
+  service:
+    type: ClusterIP
+    port: 7777
+
+amf:
+  replicaCount: 1
+  nodeSelector: { kubernetes.io/hostname: node-worker1 }
+  config:
+    guamiList:
+      - plmn_id:
+          mcc: "999"
+          mnc: "70"
+        amf_id:
+          region: 2
+          set: 1
+    taiList:
+      - plmn_id:
+          mcc: "999"
+          mnc: "70"
+        tac: [1]
+    plmnList:
+      - plmn_id:
+          mcc: "999"
+          mnc: "70"
+        s_nssai:
+          - sst: 1
+            sd: "0x111111"
+
+smf:
+  replicaCount: 1
+  nodeSelector: { kubernetes.io/hostname: node-worker1 }
+  # Fuerza UN reinicio del SMF cuando cambia su par N4 (el ConfigMap solo no
+  # reinicia el pod). Cambia el valor si vuelves a mover el UPF.
+  podAnnotations:
+    kcd.io/n4-peer: "open5gs-up-upf-pfcp.5g-up"
+  config:
+    # N4 (PFCP, UDP 8805): el UPF vive en otro release y otro namespace.
+    # Sin esto el SMF busca '<release>-upf-pfcp' en 5g-cp, que ya no existe.
+    upf:
+      pfcp:
+        hostname: "open5gs-up-upf-pfcp.5g-up.svc.cluster.local"
+    # Core 5G SA puro: el SMF habla con el PCF por SBI, no con un PCRF (4G) por
+    # Diameter. Con pcrf.enabled=true (valor por defecto del subchart) el SMF
+    # intenta resolver '<release>-pcrf-frdi', que no existe porque el PCRF está
+    # apagado, y aborta al arrancar (freeDiameter: Name or service not known).
+    pcrf:
+      enabled: false
+
+nssf:
+  replicaCount: 1
+  nodeSelector: { kubernetes.io/hostname: node-worker1 }
+  config:
+    nsiList:
+      - uri: ""
+        sst: 1
+        sd: "0x111111"
+
+pcf:
+  replicaCount: 1
+  nodeSelector: { kubernetes.io/hostname: node-worker1 }
+
+udm:
+  replicaCount: 1
+  nodeSelector: { kubernetes.io/hostname: node-worker1 }
+
+udr:
+  replicaCount: 1
+  nodeSelector: { kubernetes.io/hostname: node-worker1 }
+
+ausf:
+  replicaCount: 1
+  nodeSelector: { kubernetes.io/hostname: node-worker1 }
+
+bsf:
+  replicaCount: 1
+  nodeSelector: { kubernetes.io/hostname: node-worker1 }
+
+scp:
+  replicaCount: 1
+  nodeSelector: { kubernetes.io/hostname: node-worker1 }
+
+# ─── Plano de USUARIO → FUERA de este release ──────────────────────────────
+# El UPF es el elemento más expuesto (toca tráfico de suscriptor y sale a
+# internet por N6). Vive en su propia zona de confianza: release 'open5gs-up',
+# namespace 5g-up, nodo de borde (worker2). N4 cruza de namespace y de nodo.
+upf:
+  # El UPF NO se despliega con el plano de control.
+  # Va en el release 'open5gs-up' (namespace 5g-up, nodo de borde).
+  enabled: false
+
+# WebUI apagada: no hace falta y escribe en la base.
+webui:
+  enabled: false
+
+mongodb:
+  nodeSelector: { kubernetes.io/hostname: node-worker1 }
+  # Volumen emptyDir en el testbed: los datos de suscriptores se pierden ante
+  # cada reinicio del pod y los reinserta 'populate'. Limitación documentada.
+  persistence:
+    enabled: false

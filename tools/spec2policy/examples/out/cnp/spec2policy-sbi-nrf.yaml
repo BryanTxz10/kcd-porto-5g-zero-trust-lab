@@ -14,12 +14,12 @@ metadata:
   namespace: 5g-cp
   labels:
     app.kubernetes.io/part-of: spec2policy
-    cib46.io/managed: 'true'
+    kcd.io/managed: 'true'
   annotations:
     description: 'spec-as-policy (standard): ingress SBI de nrf con reglas HTTP por método y path derivadas
       de los OpenAPI 3GPP de nnrf-disc, nnrf-nfm.'
-    spec2policy.cib46.io/mode: standard
-    spec2policy.cib46.io/services: nnrf-disc,nnrf-nfm
+    spec2policy.kcd.io/mode: standard
+    spec2policy.kcd.io/services: nnrf-disc,nnrf-nfm
 spec:
   endpointSelector:
     matchLabels:

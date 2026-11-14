@@ -13,12 +13,12 @@ metadata:
   namespace: 5g-cp
   labels:
     app.kubernetes.io/part-of: spec2policy
-    cib46.io/managed: 'true'
+    kcd.io/managed: 'true'
   annotations:
     description: 'spec-as-policy (standard): ingress SBI de nssf con reglas HTTP por método y path derivadas
       de los OpenAPI 3GPP de nnssf-nsselection.'
-    spec2policy.cib46.io/mode: standard
-    spec2policy.cib46.io/services: nnssf-nsselection
+    spec2policy.kcd.io/mode: standard
+    spec2policy.kcd.io/services: nnssf-nsselection
 spec:
   endpointSelector:
     matchLabels:

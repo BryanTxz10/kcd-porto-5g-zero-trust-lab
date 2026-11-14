@@ -1,7 +1,7 @@
-# gitleaks — configuración del escaneo de secretos del testbed CIB46.
+# gitleaks — configuración del escaneo de secretos del lab.
 # Hereda el conjunto de reglas por defecto de gitleaks y añade una allowlist
 # acotada para valores de laboratorio que NO son secretos reales.
-title = "CIB46 gitleaks config"
+title = "kcd-porto-5g-zero-trust-lab gitleaks config"
 
 [extend]
 useDefault = true

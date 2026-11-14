@@ -1,14 +1,15 @@
 # .gitignore
 
-# Datos crudos de ejecucion (contienen IPs internas del testbed y no
-# aportan valor sin el entorno virtualizado activo)
+# Logs de las demos y de la prueba de humo (smoke_*.txt) y capturas de Hubble
 *.txt
 !requirements.txt
+*.jsonl
+!tools/spec2policy/fixtures/**/*.jsonl
+capturas/
 
-# Salidas de procesamiento
+# Salidas locales
 *.csv
 *.png
-!**/README.md
 
 # Python
 __pycache__/
@@ -24,6 +25,6 @@ kubeconfig
 .DS_Store
 *.swp
 
-# Fase 5: el blast radius map de ejemplo y la plantilla sí van al repo
+# El blast radius map de ejemplo y la plantilla sí van al repo
 !tools/spec2policy/**/*.csv
 !docs/**/*.csv

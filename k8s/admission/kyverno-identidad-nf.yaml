@@ -1,0 +1,97 @@
+# kcd-nf-identity-guard — la identidad de una NF no se puede copiar.
+#
+# Las políticas de Cilium (k8s/cilium/base/01-sbi-identidad.yaml) reconocen a
+# una NF del core por sus etiquetas: app.kubernetes.io/instance=open5gs-cp y
+# app.kubernetes.io/name=<nf>. Las de N2 y N3 reconocen al gNB por
+# app.kubernetes.io/name=ueransim-gnb. Una etiqueta la puede escribir
+# cualquiera que pueda crear un pod: sin control de admisión, un pod impostor
+# en 5g-cp se pondría las etiquetas del AMF y Cilium lo trataría como el AMF.
+#
+# Aquí eso se decide en el API server: un pod con esas etiquetas solo puede
+# existir si lo crea un controlador (los pods del chart de Open5GS y de
+# UERANSIM salen de Deployments). Un Pod suelto que copie las etiquetas es
+# rechazado antes de arrancar.
+#
+#   kubectl apply -f k8s/admission/kyverno-identidad-nf.yaml
+#   Prueba con un Pod que copia las etiquetas del AMF: k8s/admission/README.md
+#   -> admission webhook "validate.kyverno.svc-fail" denied the request ...
+#
+# Capas: la ADMISIÓN decide qué identidad puede existir; Cilium decide con
+# quién habla esa identidad; la política L7 decide qué puede pedir.
+#
+# ALCANCE: decide QUÉ pod puede existir, no QUIÉN es el administrador. Quien
+# pueda crear un Deployment en 5g-cp con esas etiquetas pasará; eso lo cubre
+# RBAC (y, para la cadena de suministro, la firma de imágenes).
+#
+# Requisito: Kyverno (se instala con deploy_multus: true; si no, ver
+# k8s/admission/README.md). Se aplica a mano: no lo aplica el playbook.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: kcd-nf-identity-guard
+  annotations:
+    policies.kyverno.io/title: Identidad de NF no copiable
+    policies.kyverno.io/description: >-
+      Un pod con las etiquetas de identidad de una NF del core (5g-cp) o del
+      gNB (5g-ran) solo puede crearlo un controlador. Un Pod suelto que las
+      copie es rechazado.
+    pod-policies.kyverno.io/autogen-controllers: none
+spec:
+  validationFailureAction: Enforce
+  background: false            # usa request.userInfo
+  rules:
+    - name: identidad-de-nf-solo-desde-un-controlador
+      match:
+        any:
+          - resources: { kinds: [Pod], operations: [CREATE], namespaces: [5g-cp] }
+      preconditions:
+        all:
+          - key: "{{ request.object.metadata.labels.\"app.kubernetes.io/instance\" || '' }}"
+            operator: Equals
+            value: open5gs-cp
+      validate:
+        message: >-
+          Las etiquetas de una NF del core (app.kubernetes.io/instance=open5gs-cp)
+          solo las puede llevar un pod creado por su Deployment. Pod rechazado:
+          la identidad de una NF no se copia.
+        deny:
+          conditions:
+            all:
+              - key: "{{ request.userInfo.username }}"
+                operator: AnyNotIn
+                value:
+                  # k3s puede crear los pods con la identidad del controller
+                  # manager o con la SA de cada controlador: se aceptan ambas.
+                  - system:kube-controller-manager
+                  - system:serviceaccount:kube-system:replicaset-controller
+                  - system:serviceaccount:kube-system:statefulset-controller
+                  - system:serviceaccount:kube-system:daemon-set-controller
+                  - system:serviceaccount:kube-system:job-controller
+
+    - name: identidad-del-gnb-solo-desde-un-controlador
+      match:
+        any:
+          - resources: { kinds: [Pod], operations: [CREATE], namespaces: [5g-ran] }
+      preconditions:
+        all:
+          - key: "{{ request.object.metadata.labels.\"app.kubernetes.io/name\" || '' }}"
+            operator: Equals
+            value: ueransim-gnb
+      validate:
+        message: >-
+          La etiqueta app.kubernetes.io/name=ueransim-gnb solo la puede llevar el
+          pod del Deployment del gNB. Pod rechazado: nadie se hace pasar por la
+          estación base.
+        deny:
+          conditions:
+            all:
+              - key: "{{ request.userInfo.username }}"
+                operator: AnyNotIn
+                value:
+                  # k3s puede crear los pods con la identidad del controller
+                  # manager o con la SA de cada controlador: se aceptan ambas.
+                  - system:kube-controller-manager
+                  - system:serviceaccount:kube-system:replicaset-controller
+                  - system:serviceaccount:kube-system:statefulset-controller
+                  - system:serviceaccount:kube-system:daemon-set-controller
+                  - system:serviceaccount:kube-system:job-controller

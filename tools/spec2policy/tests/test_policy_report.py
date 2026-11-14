@@ -152,7 +152,7 @@ def test_cnp_standard_udm_solo_desde_scp_y_nrf(topo, specs, analysis):
     header, cnp = policies["udm"]
     assert "NO verificado en clúster" in header
     assert cnp["metadata"]["name"] == "spec2policy-sbi-udm"
-    assert cnp["metadata"]["labels"]["cib46.io/managed"] == "true"
+    assert cnp["metadata"]["labels"]["kcd.io/managed"] == "true"
     assert cnp["spec"]["endpointSelector"] == {"matchLabels": {"app.kubernetes.io/name": "udm"}}
     sources = [
         i["fromEndpoints"][0]["matchLabels"]["app.kubernetes.io/name"]

@@ -43,6 +43,6 @@ emitir() { # emitir <nombre> <CN> <SAN...>
 emitir {{ nf }} {{ svc }}.{{ ns_cp }}.svc.cluster.local \
   {{ svc }} {{ svc }}.{{ ns_cp }} {{ svc }}.{{ ns_cp }}.svc {{ svc }}.{{ ns_cp }}.svc.cluster.local
 {% endfor %}
-# Pod de prueba de la SBI (bootstrap/manifests/sbi-probe.yaml): solo cliente,
+# Pod de prueba de la SBI (k8s/manifests/sbi-probe.yaml): solo cliente,
 # pero firmado por la misma CA, como lo estaría una NF comprometida.
 emitir sbi-probe sbi-probe.{{ ns_cp }} sbi-probe.{{ ns_cp }}.svc.cluster.local

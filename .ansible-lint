@@ -1,4 +1,4 @@
-# ansible-lint — testbed CIB46.
+# ansible-lint — configuración del lab.
 # El playbook envuelve a propósito los instaladores oficiales (k3s, Helm) con
 # shell/command idempotentes (ver nota de diseño en site.yml), por lo que
 # usamos el perfil mínimo (solo errores que rompen el despliegue) y silenciamos

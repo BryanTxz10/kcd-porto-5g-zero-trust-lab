@@ -41,8 +41,8 @@ Las IP salen todas de `ansible/group_vars/all.yml`.
   así un atacante que escriba `k8s.v1.cni.cncf.io/networks: access` es rechazado
   por el API server, que es la demo.
 - **gNB por patch.** Añade la anotación y las variables `N2_IP`, `N3_IP` y
-  `AMF_N2_ADDR`, que **no** existen en `bootstrap/manifests/ueransim.yaml`; un
-  `kubectl apply` del base no deshace el patch. `ueransim-config/gnb.yaml` usa
+  `AMF_N2_ADDR`, que **no** existen en `k8s/manifests/ueransim.yaml`; un
+  `kubectl apply` del base no deshace el patch. `k8s/ueransim/gnb.yaml` usa
   marcadores (`__N2_IP__`, `__N3_IP__`, `__AMF_N2__`) que sin el patch valen la IP
   del pod y el Service headless (plan B).
 - **UPF por patch.** El policy routing va en un initContainer añadido con un patch
@@ -68,25 +68,25 @@ Supuestos **no verificados** contra `oci://registry-1.docker.io/gradiantcharts/o
 | `enableNAT: false` quita el MASQUERADE del UPF | CGNAT solo en dn-gw |
 | El Deployment del UPF se llama `open5gs-up-upf` | patch del initContainer |
 
-En el master, con los ficheros que deja el playbook en `/tmp/cib46/` (o generándolos
+En el master, con los ficheros que deja el playbook en `/tmp/kcd-lab/` (o generándolos
 con `--tags open5gs,multus`):
 
 ```bash
 # 1) amf.yaml que genera el chart SIN el fichero de Multus (referencia)
 helm template open5gs-cp oci://registry-1.docker.io/gradiantcharts/open5gs --version 2.3.4 \
-  -n 5g-cp -f /tmp/cib46/open5gs-values.yaml \
+  -n 5g-cp -f /tmp/kcd-lab/open5gs-values.yaml \
   | yq 'select(.kind=="ConfigMap" and .metadata.name=="open5gs-cp-amf")' > /tmp/amf-chart.yaml
 
 # 2) el mismo CON el fichero de Multus
 helm template open5gs-cp oci://registry-1.docker.io/gradiantcharts/open5gs --version 2.3.4 \
-  -n 5g-cp -f /tmp/cib46/open5gs-values.yaml -f /tmp/cib46/open5gs-cp-multus-values.yaml \
+  -n 5g-cp -f /tmp/kcd-lab/open5gs-values.yaml -f /tmp/kcd-lab/open5gs-cp-multus-values.yaml \
   | yq 'select(.kind=="ConfigMap" and .metadata.name=="open5gs-cp-amf")' > /tmp/amf-multus.yaml
 
 diff /tmp/amf-chart.yaml /tmp/amf-multus.yaml   # solo debe cambiar ngap (y nada que falte)
 
 # 3) UPF: anotación, gtpu y NAT
 helm template open5gs-up oci://registry-1.docker.io/gradiantcharts/open5gs --version 2.3.4 \
-  -n 5g-up -f /tmp/cib46/open5gs-upf-values.yaml -f /tmp/cib46/open5gs-upf-multus-values.yaml \
+  -n 5g-up -f /tmp/kcd-lab/open5gs-upf-values.yaml -f /tmp/kcd-lab/open5gs-upf-multus-values.yaml \
   | grep -nE 'cni.cncf.io/networks|gtpu|dev: n3|advertise|10\.10\.0\.30|enableNAT|MASQUERADE|name: open5gs-up-upf$'
 ```
 
@@ -167,5 +167,3 @@ hubble observe --port 2152 --last 50         # plan B: GTP-U gNB↔UPF; redes de
 - **ipvlan L2 en el mismo worker.** gNB y UPF comparten la NIC padre `access` en
   worker2; los esclavos ipvlan de un mismo padre se ven entre sí, pero el host no ve
   a sus pods por esa NIC (esperado).
-- **Camino bash.** `make up` con `DEPLOY_MULTUS=1` sigue siendo el Multus macvlan del
-  lab v2. Las redes dedicadas solo existen en Ansible.
