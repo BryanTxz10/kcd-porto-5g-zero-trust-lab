@@ -40,8 +40,8 @@ run_step 70 70-subscribers.sh
 run_step 80 80-spire.sh
 run_step 90 90-ueransim.sh
 
-log "========== Aplicando condición baseline C0 =========="
-( cd ../cilium-policies && bash transition-to-c0.sh )
+log "========== Aplicando capa de política baseline (C0) =========="
+kubectl apply -f ../cilium-policies/c0-allow-all-anchor.yaml
 
-ok "Testbed desplegado y en condición C0. Siguiente: ejecutar el experimento"
-ok "con ./run-experiment.sh, o pasar de condición con cilium-policies/transition-to-cN.sh"
+ok "Testbed desplegado con la capa baseline aplicada. Siguiente: ejecutar el experimento"
+ok "con ./run-experiment.sh, o cambiar de capa con 'make condition C=cN'."

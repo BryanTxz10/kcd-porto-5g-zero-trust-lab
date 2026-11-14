@@ -1,12 +1,38 @@
-# CIB46 — Evaluación de una Arquitectura Zero Trust sobre la Seguridad del Núcleo 5G SA Cloud-Native en Redes Privadas Mineras en Perú, 2026
+# kcd-porto-5g-zero-trust-lab — Zero Trust en un core 5G cloud native
 
-Repositorio de código, manifiestos y scripts del testbed experimental utilizado en el
-trabajo de investigación para optar el grado de Bachiller en Ingeniería de
-Telecomunicaciones (UNI-FIEE).
+Laboratorio de demostración para una charla de 30 min en **KCD Porto (19–20 nov 2026)**
+sobre cómo aplicar (y dónde se rompe) un enfoque Zero Trust en el plano de señalización
+de un núcleo 5G SA open source desplegado sobre Kubernetes.
 
-**Autor:** Bryan Alejandro Cucho Suyo
-**Asesor metodológico:** MSc. Alfredo Efrain Rodríguez Espinoza
-**Asesor técnico:** Mg. Ing. Renzo Hurtado Garrafa
+> **Origen.** Este repositorio nace de
+> [`BryanTxz10/cib46-zta-5g-core`](https://github.com/BryanTxz10/cib46-zta-5g-core),
+> conservando su historial. Allí vivía el testbed de la tesis CIB46; aquí se reorienta
+> el mismo código hacia la charla y se archiva en [`legacy/`](legacy/) el material
+> exclusivamente académico (protocolo experimental, análisis estadístico,
+> `data-processing/`, transiciones imperativas `transition-to-c*.sh`, `REPRODUCIBILITY.md`
+> y `CITATION.cff`). Ese material **no se mantiene ni se valida en CI**.
+
+## El arco de la charla
+
+1. **Punto de partida.** Una política de red (Cilium L3/L4) bloquea el movimiento
+   lateral dentro de la SBI (*Service Based Interface*) del core.
+2. **Giro 1 — lo que el CNI no ve.** El radio (N2/N3) y la salida a internet del UPF
+   (N6) viajan por redes dedicadas con **Multus**; esas interfaces quedan fuera del
+   alcance del CNI, así que la política que creías total no las cubre.
+3. **Giro 2 — mTLS te deja ciego.** Al cifrar la SBI con **mTLS**, la política L7
+   basada en inspección HTTP se queda sin visibilidad: ya no puede decidir por método
+   ni por ruta.
+4. **Respuesta 1 — spec-as-policy.** Derivar la política directamente de la
+   especificación 3GPP de la SBI, para autorizar por identidad y contrato de API en
+   lugar de por inspección de paquetes.
+5. **Respuesta 2 — cortar en el kernel.** **Tetragon** observa y corta en el punto de
+   ejecución (eBPF/kernel), por debajo del cifrado de la capa de transporte.
+
+> **Estado de verificación.** El material de este repo (manifiestos, políticas,
+> scripts) **no se ha validado end-to-end en clúster dentro de este repositorio**.
+> Lo que se afirme como probado en la charla se marcará explícitamente; el resto es
+> diseño/propuesta. El CI solo valida *estáticamente* (lint, sintaxis, build de
+> manifiestos), no despliegue real.
 
 ## Stack tecnológico
 
@@ -15,6 +41,7 @@ Telecomunicaciones (UNI-FIEE).
 | k3s (Kubernetes) | v1.28.5 |
 | Open5GS | v2.7 (lab v2: 2.7.5, chart Gradiant 2.3.4) |
 | Cilium (CNI) | v1.15.4 |
+| Multus | v4.0.2 |
 | UERANSIM | v3.2.6 |
 | SPIRE | 1.8.5, integrado en Cilium (mutual authentication, beta) |
 
@@ -25,15 +52,15 @@ Telecomunicaciones (UNI-FIEE).
 ```
 .
 ├── ansible/             # Despliegue declarativo con Ansible (recomendado) + guía desde cero
-├── bootstrap/           # Despliegue con bash (respaldo), checks y análisis estadístico
-├── cilium-policies/     # CiliumNetworkPolicy por condición + overlays Kustomize (conditions/)
+├── bootstrap/           # Despliegue con bash (respaldo) y checks del plano de control
+├── cilium-policies/     # CiliumNetworkPolicy por capa + overlays Kustomize (conditions/)
 ├── helm-values/         # values.yaml del chart Open5GS (Gradiant)
-├── attack-scripts/      # Scripts de ejecución de los vectores A1, A2, A2', A2'', A3
+├── attack-scripts/      # Scripts de los vectores de ataque (movimiento lateral, spoofing, flood)
 ├── spire-config/        # SPIRE autónomo de la v1 (legado; en lab v2 SPIRE lo instala Cilium)
 ├── monitoring/          # Consultas de monitoreo de recursos del AMF
-├── data-processing/     # Scripts Python de procesamiento estadístico
 ├── ueransim-config/     # Configuración de UERANSIM (gNB y UEs)
-└── docs/                # Metodología, reproducibilidad, related work, revisión
+├── docs/                # Arquitectura, guías de laboratorio y estado del arte
+└── legacy/              # Material de la tesis, archivado y NO mantenido (ver legacy/README.md)
 ```
 
 ## Despliegue automatizado
@@ -42,47 +69,44 @@ Dos caminos equivalentes (versiones fijadas, idempotentes):
 
 | Camino | Comando | Para |
 |---|---|---|
-| **Ansible** (declarativo, recomendado) | `cd ansible && ansible-playbook site.yml` | calidad-paper; ver `ansible/README-ansible.md` (desde cero) |
+| **Ansible** (declarativo, recomendado) | `cd ansible && ansible-playbook site.yml` | ver `ansible/README-ansible.md` (desde cero) |
 | **Bash** (imperativo, respaldo) | `make up` | prototipado rápido; ver `docs/guia-reproducibilidad.md` |
 
-Reproducibilidad del artefacto y pasos extremo a extremo: `REPRODUCIBILITY.md`.
+> No verificado end-to-end en este repositorio. Trátese como procedimiento de
+> referencia hasta reproducirlo en un clúster.
 
 ## Integración continua y seguridad del pipeline
 
 Cada push y PR a `main` dispara dos workflows de GitHub Actions que verifican el
-despliegue **antes** de ejecutarlo en las VMs:
+material **estáticamente** antes de cualquier despliegue:
 
 | Workflow | Valida |
 |---|---|
-| `CI — Validación de despliegue` | bash (shellcheck/`bash -n`), Ansible (`--syntax-check` + lint), Kustomize (`build` C0–C3), Python |
+| `CI — Validación de despliegue` | bash (shellcheck/`bash -n`), Ansible (`--syntax-check` + lint), Kustomize (`build` de las capas), Python (compileall + ruff) |
 | `Seguridad CI/CD` | secretos (gitleaks), seguridad de workflows (actionlint/zizmor), IaC/K8s (trivy/checkov/kube-linter) |
 
 El pipeline aplica mínimo privilegio (`permissions: contents: read`), acciones
-fijadas por SHA y escaneo de secretos bloqueante. Detalle y roles de seguridad:
-`docs/ci-cd-seguridad.md`. Réplica local: `make ci`.
+fijadas por SHA y escaneo de secretos bloqueante. La carpeta `legacy/` queda
+**fuera del alcance de los linters** por estar deprecada. Detalle y roles de
+seguridad: `docs/ci-cd-seguridad.md`. Réplica local: `make ci`.
 
-## Condiciones experimentales
+## Capas de política (demo)
 
-| Condición | Descripción |
+Las políticas de `cilium-policies/` se organizan en capas incrementales que sirven
+de pasos de la demostración (no como condiciones experimentales con hipótesis):
+
+| Capa | Qué añade |
 |---|---|
-| C0 | Sin controles ZTA activos (baseline) |
-| C1 | Microsegmentación L3/L4 con Cilium |
-| C2 | C1 + identidad de workload eBPF |
-| C3 | C2 + autorización L7 por rol (SCP) |
-| C2-SPIRE / C3-SPIRE | C2 / C3 + autenticación mutua con SPIRE (`authentication: required`) |
+| c0 | Ancla permisiva (baseline sin segmentación) |
+| c1 | Microsegmentación L3/L4 con Cilium |
+| c2 | c1 + identidad de workload eBPF |
+| c3 | c2 + autorización L7 por rol (SCP) |
+| c2-spire / c3-spire | c2 / c3 + autenticación mutua con SPIRE (`authentication: required`) |
 
-El paso entre condiciones es declarativo (`kubectl apply` / `kubectl delete`), sin
-redespliegue del clúster ni alteración del plano de datos.
-
-## Reproducibilidad
-
-Todo el software utilizado es de código abierto (Apache 2.0, BSD, MIT). El testbed se
-ejecutó en un entorno virtualizado (VMware Workstation) con tres máquinas virtuales
-Ubuntu 22.04 LTS, sin conectividad con redes en producción ni infraestructura de
-terceros.
+El paso entre capas es declarativo con Kustomize: `make condition C=c1` (… c2, c3).
+Para una comprobación estática de los flujos L3/L4 sin clúster: `make policy-matrix`.
 
 ## Licencia
 
-Este repositorio se distribuye con fines de verificación y reproducibilidad académica,
-en conformidad con el principio de transparencia declarado en el capítulo de
-responsabilidad ética de la investigación.
+Ver [`LICENSE`](LICENSE). El repositorio se publica con fines de divulgación y
+reproducibilidad.

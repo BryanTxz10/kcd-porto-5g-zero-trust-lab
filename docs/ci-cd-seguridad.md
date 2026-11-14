@@ -54,7 +54,7 @@ Estos son los controles de seguridad exigidos a un CI/CD y cómo se cumplen:
 ## Qué NO cubre el CI (requiere infraestructura)
 
 El despliegue real (`make up` / `ansible-playbook site.yml`) necesita **3 nodos
-Ubuntu 22.04** con k3s, SCTP y acceso SSH (ver `REPRODUCIBILITY.md`). El CI
+Ubuntu 22.04** con k3s, SCTP y acceso SSH (ver `legacy/REPRODUCIBILITY.md`). El CI
 valida la **corrección** de todo lo que se ejecuta (sintaxis, esquema, build),
 pero no levanta el clúster 5G: eso se hace sobre las VMs del testbed.
 

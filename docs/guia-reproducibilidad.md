@@ -160,18 +160,19 @@ En vez de comparar solo pares adyacentes con *d* de Cohen, usa:
 
 ```bash
 # Kruskal-Wallis (4 grupos) -> Dunn con Holm/FDR -> rank-biserial + IC95%:
-make analyze-latency CSV=latencia_todas.csv
-# o directamente, para cualquier métrica continua (p. ej. IDR-CPU):
-python3 bootstrap/analysis/omnibus_posthoc.py idr_cpu.csv cpu_millicores condicion --correction fdr_bh
+# (el análisis estadístico está archivado en legacy/analysis/, no mantenido)
+python3 legacy/analysis/omnibus_posthoc.py latencia_todas.csv latency_ms condicion
+# o para cualquier métrica continua (p. ej. IDR-CPU):
+python3 legacy/analysis/omnibus_posthoc.py idr_cpu.csv cpu_millicores condicion --correction fdr_bh
 ```
 
 Tamaños de efecto congruentes con Mann-Whitney (para reemplazar la *d* de
 Cohen del script original):
 ```bash
-python3 bootstrap/analysis/effect_sizes.py latencia_todas.csv latency_ms condicion
+python3 legacy/analysis/effect_sizes.py latencia_todas.csv latency_ms condicion
 ```
 
-> El script original `data-processing/statistical_analysis.py` se conserva; estos
+> El script original `legacy/data-processing/statistical_analysis.py` se conserva; estos
 > módulos lo **complementan/corrigen**. Decide *a priori* usar siempre pruebas de
 > rango (defendible con n pequeño) y alinea el texto de la tesis (RM-04).
 

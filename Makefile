@@ -22,19 +22,12 @@ up-no-spire: ## Igual que 'up' pero omite SPIRE (no afecta métricas C0-C3)
 prereqs: ## Verifica prerrequisitos del host
 	bash bootstrap/00-prereqs.sh
 
-# ---- Condiciones experimentales --------------------------------------------
-.PHONY: c0 c1 c2 c3
-c0: ## Transición a C0 (baseline)
-	cd cilium-policies && bash transition-to-c0.sh
-c1: ## Transición a C1 (microsegmentación L3/L4)
-	cd cilium-policies && bash transition-to-c1.sh
-c2: ## Transición a C2 (identidad de workload)
-	cd cilium-policies && bash transition-to-c2.sh
-c3: ## Transición a C3 (autorización L7 por rol)
-	cd cilium-policies && bash transition-to-c3.sh
-
+# ---- Capas de política (demo) ----------------------------------------------
+# Las transiciones imperativas por condición (transition-to-c*.sh) se archivaron
+# en legacy/transitions/ (material de tesis, no mantenido). La forma soportada de
+# aplicar cada capa de política es declarativa con Kustomize:
 .PHONY: condition
-condition: ## Transición declarativa con Kustomize (uso: make condition C=c1)
+condition: ## Aplica una capa de política con Kustomize (uso: make condition C=c1)
 	kubectl delete ciliumnetworkpolicy -A -l cib46.io/managed=true 2>/dev/null || true
 	kubectl kustomize --load-restrictor=LoadRestrictionsNone cilium-policies/conditions/$(C) | kubectl apply -f -
 	kubectl get ciliumnetworkpolicies -A
@@ -48,19 +41,13 @@ smoke: ## Prueba de humo del plano de control (uso: make smoke C=C1)
 policy-matrix: ## Matriz de flujos por condición, sin clúster (aproximación L3/L4)
 	python3 bootstrap/checks/policy-matrix.py .
 
-# ---- Análisis (RM-03/07: efecto congruente + ómnibus/post-hoc) -------------
-.PHONY: analyze-latency
-analyze-latency: ## Ómnibus + post-hoc de latencia (uso: make analyze-latency CSV=archivo.csv)
-	python3 bootstrap/analysis/omnibus_posthoc.py $(CSV) latency_ms condicion
-
-.PHONY: analyze-effect
-analyze-effect: ## Tamaños de efecto por rangos (uso: make analyze-effect CSV=.. COL=..)
-	python3 bootstrap/analysis/effect_sizes.py $(CSV) $(COL) condicion
+# Nota: el análisis estadístico de la tesis (ómnibus/post-hoc, tamaños de efecto)
+# se archivó en legacy/analysis/ y ya no se expone como objetivo del Makefile.
 
 # ---- Utilidades -------------------------------------------------------------
 .PHONY: lint
 lint: ## Chequeo de sintaxis de todos los scripts bash
-	@for f in bootstrap/*.sh bootstrap/checks/*.sh cilium-policies/*.sh \
+	@for f in bootstrap/*.sh bootstrap/checks/*.sh \
 	          attack-scripts/*.sh monitoring/*.sh helm-values/*.sh \
 	          cilium-policies/c2/*.sh; do bash -n "$$f" && echo "ok  $$f"; done
 
@@ -77,7 +64,7 @@ ci: ## Replica local del pipeline CI (lint bash + yaml + kustomize + python)
 	@echo "== bash -n =="; $(MAKE) --no-print-directory lint
 	@echo "== yamllint =="; yamllint -c .yamllint.yml .
 	@echo "== kustomize =="; $(MAKE) --no-print-directory kustomize-check
-	@echo "== python =="; python3 -m compileall -q attack-scripts bootstrap data-processing
+	@echo "== python =="; python3 -m compileall -q attack-scripts bootstrap
 	@echo "OK: validación local completa"
 
 .PHONY: status

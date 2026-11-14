@@ -11,9 +11,9 @@ updates:
       prefix: "ci"
     labels: ["ci", "dependencies"]
 
-  # Dependencias Python del procesamiento estadístico.
+  # Dependencias Python del procesamiento estadístico (archivado en legacy/).
   - package-ecosystem: "pip"
-    directory: "/data-processing"
+    directory: "/legacy/data-processing"
     schedule:
       interval: "weekly"
     commit-message:
