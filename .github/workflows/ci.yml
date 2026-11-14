@@ -101,6 +101,12 @@ jobs:
               echo "FAIL $c"; rc=1
             fi
           done
+          echo "== build multinetwork-policies =="
+          if kustomize build multinetwork-policies >/dev/null; then
+            echo "ok   multinetwork-policies"
+          else
+            echo "FAIL multinetwork-policies"; rc=1
+          fi
           exit $rc
 
   lint-python:

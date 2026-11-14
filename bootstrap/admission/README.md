@@ -1,4 +1,15 @@
-# Control de admisión — identidad de workload no forjable (punto 2 / RM-05)
+# Control de admisión
+
+`kyverno-identity-guard.yaml` contiene dos ClusterPolicy:
+
+| Política | Para qué | Cómo se aplica |
+|---|---|---|
+| `kcd-multus-network-guard` | **KCD Porto, Fase 2.** Solo el AMF, el gNB y el UPF pueden pedir las redes dedicadas `access` y `n6`, con su IP fija y desde su namespace; un Pod suelto no puede pedirlas | Automática con `deploy_multus: true` (`site.yml`, tag `admission`). Pruebas: [`docs/pruebas-fase2.md`](../../docs/pruebas-fase2.md) |
+| `cib46-identity-guard` | Tesis: identidad de workload no forjable (resto de este documento) | Manual, tras ajustar la allowlist |
+
+---
+
+## Identidad de workload no forjable (tesis, punto 2 / RM-05)
 
 Cierra la crítica de constructo más fuerte de la tesis: en C2 la "identidad de
 workload" es un **label de pod** (`cib46-nf-type=core-nf`), y un label es

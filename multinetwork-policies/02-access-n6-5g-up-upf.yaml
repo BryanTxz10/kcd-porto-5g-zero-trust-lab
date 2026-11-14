@@ -1,0 +1,76 @@
+# Redes del UPF en 5g-up. Fase 2, solo con deploy_multus: true.
+#
+# access (n3, 10.10.0.30): solo GTP-U (UDP 2152) con el gNB (10.10.0.20).
+apiVersion: k8s.cni.cncf.io/v1beta1
+kind: MultiNetworkPolicy
+metadata:
+  name: access-upf
+  namespace: 5g-up
+  annotations:
+    k8s.v1.cni.cncf.io/policy-for: 5g-up/access
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: upf
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - ipBlock: { cidr: 10.10.0.20/32 }
+      ports:
+        - { protocol: UDP, port: 2152 }
+  egress:
+    - to:
+        - ipBlock: { cidr: 10.10.0.20/32 }
+      ports:
+        - { protocol: UDP, port: 2152 }
+---
+# n6 (10.10.6.30): el UPF solo habla con la red de datos. Hacia fuera, la red
+# de datos es internet (destinos públicos) y dn-gw (10.10.6.1, que también
+# ofrece iperf3 y HTTP); nunca rangos privados: N6 no es una puerta al core.
+# Lo mismo de vuelta. dn-gw aplica las mismas reglas en su lado.
+apiVersion: k8s.cni.cncf.io/v1beta1
+kind: MultiNetworkPolicy
+metadata:
+  name: n6-upf
+  namespace: 5g-up
+  annotations:
+    k8s.v1.cni.cncf.io/policy-for: 5g-up/n6
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: upf
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - ipBlock: { cidr: 10.10.6.1/32 }
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10]
+  egress:
+    - to:
+        - ipBlock: { cidr: 10.10.6.1/32 }
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10]
+---
+apiVersion: k8s.cni.cncf.io/v1beta1
+kind: MultiNetworkPolicy
+metadata:
+  name: access-default-deny
+  namespace: 5g-up
+  annotations:
+    k8s.v1.cni.cncf.io/policy-for: 5g-up/access
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: k8s.cni.cncf.io/v1beta1
+kind: MultiNetworkPolicy
+metadata:
+  name: n6-default-deny
+  namespace: 5g-up
+  annotations:
+    k8s.v1.cni.cncf.io/policy-for: 5g-up/n6
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
