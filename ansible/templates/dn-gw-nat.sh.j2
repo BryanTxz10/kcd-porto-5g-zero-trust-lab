@@ -1,0 +1,34 @@
+#!/bin/sh
+# dn-gw-nat.sh — generado por Ansible (deploy_multus: true). Idempotente:
+# reconstruye sus propias cadenas en cada arranque.
+#
+# dn-gw es la red de datos: el CGNAT y el firewall de N6 viven aquí, FUERA
+# del core. Reglas:
+#   - el pool de UE sale a internet por mgmt con MASQUERADE (CGNAT);
+#   - desde el pool NO se alcanzan redes privadas (ni la red de pods, ni la
+#     de Services, ni mgmt): un UE no puede usar N6 para entrar al clúster;
+#   - de vuelta solo entra lo que pertenece a una conexión ya abierta.
+set -eu
+POOL="{{ ue_pool_cidr }}"
+N6="{{ n6_iface }}"
+WAN="{{ mgmt_iface }}"
+
+chain() { # chain <tabla> <cadena> <cadena padre> <argumentos del salto...>
+  t="$1"; c="$2"; p="$3"; shift 3
+  iptables -t "$t" -N "$c" 2>/dev/null || iptables -t "$t" -F "$c"
+  iptables -t "$t" -C "$p" "$@" -j "$c" 2>/dev/null || iptables -t "$t" -I "$p" 1 "$@" -j "$c"
+}
+
+# Firewall de N6 (FORWARD)
+chain filter DN-N6-FWD FORWARD
+iptables -A DN-N6-FWD -i "$WAN" -o "$N6" -d "$POOL" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A DN-N6-FWD -i "$WAN" -o "$N6" -j DROP
+for net in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 100.64.0.0/10; do
+  iptables -A DN-N6-FWD -i "$N6" -s "$POOL" -d "$net" -j DROP
+done
+iptables -A DN-N6-FWD -i "$N6" -o "$WAN" -s "$POOL" -j ACCEPT
+iptables -A DN-N6-FWD -i "$N6" -j DROP
+
+# CGNAT
+chain nat DN-N6-NAT POSTROUTING
+iptables -t nat -A DN-N6-NAT -s "$POOL" -o "$WAN" -j MASQUERADE

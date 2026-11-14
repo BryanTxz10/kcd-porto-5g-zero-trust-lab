@@ -1,0 +1,23 @@
+# Patch estratégico del Deployment del UPF (deploy_multus: true).
+# Añade un initContainer que, con n6 ya creada por Multus (los initContainers
+# arrancan después del CNI), crea el policy routing del pool de UE:
+#   ip rule from {{ ue_pool_cidr }} table {{ upf_n6_route_table }}
+#   default via {{ dn_gw_n6_ip }} dev {{ multus_n6_iface }} table {{ upf_n6_route_table }}
+# El resto del pod (N4, DNS) sigue por eth0. Solo necesita NET_ADMIN.
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: n6-route
+          image: {{ netshoot_image }}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              ip rule show | grep -q 'from {{ ue_pool_cidr }} lookup {{ upf_n6_route_table }}' \
+                || ip rule add from {{ ue_pool_cidr }} table {{ upf_n6_route_table }} priority 1000
+              ip route replace default via {{ dn_gw_n6_ip }} dev {{ multus_n6_iface }} table {{ upf_n6_route_table }}
+              ip rule show
+              ip route show table {{ upf_n6_route_table }}
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]

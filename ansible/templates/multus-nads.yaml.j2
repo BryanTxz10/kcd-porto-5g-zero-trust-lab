@@ -1,0 +1,35 @@
+# multus-nads.yaml — generado por Ansible desde templates/multus-nads.yaml.j2
+# (variable multus_networks en group_vars/all.yml). Solo con deploy_multus: true.
+#
+# Un NAD por red y namespace: 'access' en 5g-cp, 5g-ran y 5g-up; 'n6' en 5g-up.
+# ipvlan L2 sobre la NIC padre del worker (por qué ipvlan y no macvlan:
+# docs/guia-vms-realista.md §0). IPAM static con la capacidad "ips": cada pod
+# pide su IP fija en la anotación k8s.v1.cni.cncf.io/networks.
+#
+# Lo que viaja por estas interfaces (N2, N3, N6) NO pasa por el datapath de
+# Cilium: ninguna CiliumNetworkPolicy lo ve ni lo filtra, y Hubble no lo
+# registra. Los controles de estas redes están en la Fase 2 (L2, Kyverno,
+# MultiNetworkPolicy).
+{% for net in multus_networks %}
+{% for ns in net.namespaces %}
+---
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: {{ net.name }}
+  namespace: {{ ns }}
+  labels:
+    cib46.io/component: multus
+spec:
+  config: |
+    {
+      "cniVersion": "0.3.1",
+      "name": "{{ net.name }}",
+      "type": "ipvlan",
+      "master": "{{ net.master }}",
+      "mode": "l2",
+      "capabilities": { "ips": true },
+      "ipam": { "type": "static" }
+    }
+{% endfor %}
+{% endfor %}

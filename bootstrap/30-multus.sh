@@ -3,6 +3,10 @@
 # red 10.10.0.0/24 que usan gnb.yaml/ue.yaml) y crea el
 # NetworkAttachmentDefinition. Cierra la brecha RM-25 (el NAD no estaba en el
 # repo). Idempotente.
+#
+# OJO (KCD Porto, Fase 1): esto es el Multus macvlan del lab v2. La arquitectura
+# de tres redes (ipvlan access/n6, NAD por NF, dn-gw) solo existe en Ansible:
+# deploy_multus: true en ansible/group_vars/all.yml (docs/pruebas-fase1.md).
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 export KUBECONFIG="${KUBECONFIG:-${HOME}/.kube/config}"

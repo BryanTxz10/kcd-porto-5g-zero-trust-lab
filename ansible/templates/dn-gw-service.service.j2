@@ -1,0 +1,15 @@
+# {{ svc.name }}.service — generado por Ansible (deploy_multus: true).
+# Servicio de la red de datos para los UE. Escucha solo en la IP de n6.
+[Unit]
+Description=dn-gw: {{ svc.desc }}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart={{ svc.cmd }}
+DynamicUser=yes
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

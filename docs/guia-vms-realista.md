@@ -611,10 +611,10 @@ molestan y dn-gw puede quedarse apagada (o comentada en el inventario para
 que `ansible all -m ping` no falle por ella). Es la red de seguridad si
 Multus/ipvlan da problemas antes de la charla.
 
-> Estado actual del playbook: las tareas de Multus que hay hoy en `site.yml`
-> son las del lab v2 (macvlan, NAD `n2-net`) y **no implementan** la
-> arquitectura de tres redes. Eso, igual que el rol de dn-gw, es la Fase 1.
-> Hasta entonces, `deploy_multus` debe quedarse en `false`.
+> Estado del playbook: la arquitectura de tres redes ya está en `site.yml`
+> (Fase 1: ipvlan, un NAD por NF, dn-gw), pero **no se ha verificado en
+> clúster**. Despliega primero con `false` y pasa a `true` siguiendo
+> [`docs/pruebas-fase1.md`](pruebas-fase1.md).
 
 ---
 
@@ -662,7 +662,7 @@ ansible all -m ping              # 4 × SUCCESS / "ping": "pong"
 ```
 
 Con eso Ansible ya llega a todo. **El despliegue (`ansible-playbook site.yml`)
-es la Fase 1**; no lo lances todavía sobre esta topología.
+es la Fase 1**: sigue [`docs/pruebas-fase1.md`](pruebas-fase1.md).
 
 ---
 
@@ -672,14 +672,16 @@ Apaga las cuatro VMs (`sudo poweroff`) y toma un snapshot en cada una con el
 nombre `fase0-redes-ok`. Si algo se rompe en las fases siguientes, vuelves
 aquí en un minuto en vez de reinstalar.
 
-Lo que viene (Fase 1, todo desde Ansible, sin pasos a mano):
+Lo que viene (Fase 1, todo desde Ansible, sin pasos a mano; detalle y
+pruebas en [`docs/pruebas-fase1.md`](pruebas-fase1.md)):
 
 - Multus con ipvlan sobre `access`/`n6` y NAD con IPAM estático para AMF, gNB
   y UPF.
-- Rol `dn-gw`: `ip_forward`, ruta `10.45.0.0/16 via 10.10.6.30` y MASQUERADE
-  por mgmt (las variables ya están en `host_vars/dn-gw.yml`).
-- Taint del master, placement de los pods por sitio, values del UPF con las IP
-  de N3/N6.
+- Play `dn-gw`: `ip_forward`, ruta `10.45.0.0/16 via 10.10.6.30` y MASQUERADE
+  por mgmt (variables en `host_vars/dn-gw.yml`).
+- Values del AMF y del UPF con las IP de N2/N3/N6. El placement por sitio ya
+  lo fijan los `nodeSelector` de los values y manifiestos; el taint del master
+  está en `ansible/hardening.yml` (`--tags taint`).
 
 ---
 

@@ -1,0 +1,19 @@
+# Patch estratégico del Deployment ueransim-gnb (deploy_multus: true).
+# El gNB recibe la interfaz 'access' ({{ gnb_access_ip }}) y la usa para N2
+# (ngapIp) y N3 (gtpIp); la radio simulada (linkIp, RLS con el UE) sigue en la
+# red de pods. Llega al AMF directamente por {{ amf_n2_ip }}: el Service
+# headless amf-n2 no hace falta en este modo.
+# Las variables N2_IP/N3_IP/AMF_N2_ADDR no existen en el manifiesto base a
+# propósito: así un 'kubectl apply' del base no deshace este patch.
+spec:
+  template:
+    metadata:
+      annotations:
+        k8s.v1.cni.cncf.io/networks: '[{"name": "access", "interface": "access", "ips": ["{{ gnb_access_ip }}/{{ access_cidr.split('/')[1] }}"]}]'
+    spec:
+      containers:
+        - name: gnb
+          env:
+            - { name: N2_IP, value: "{{ gnb_access_ip }}" }
+            - { name: N3_IP, value: "{{ gnb_access_ip }}" }
+            - { name: AMF_N2_ADDR, value: "{{ amf_n2_ip }}" }

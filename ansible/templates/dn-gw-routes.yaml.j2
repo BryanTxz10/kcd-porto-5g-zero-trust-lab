@@ -1,0 +1,10 @@
+# /etc/netplan/70-dn-gw-routes.yaml — generado por Ansible (Fase 1).
+# Se fusiona con la definición de '{{ n6_iface }}' de 60-lab-nics.yaml (mismo id).
+# El pool de los UE se alcanza a través del UPF (lado N6).
+network:
+  version: 2
+  ethernets:
+    {{ n6_iface }}:
+      routes:
+        - to: {{ ue_pool_route.to }}
+          via: {{ ue_pool_route.via }}

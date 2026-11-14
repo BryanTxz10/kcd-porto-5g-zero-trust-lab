@@ -2,9 +2,9 @@
 # NIC: mgmt (VMnet8, con IP = ansible_host) y n6 (LAN segment N6).
 # Guía: docs/guia-vms-realista.md
 #
-# Fase 0: netplan a mano (n6 con 10.10.6.1/24). Fase 1: un rol de Ansible
-# usará estas variables para ip_forward, la ruta hacia el pool de UE y el
-# MASQUERADE de salida por mgmt. Ese rol aún no existe.
+# Fase 0: netplan a mano (n6 con 10.10.6.1/24). Fase 1: el play "dn-gw" de
+# site.yml (solo con deploy_multus: true) usa estas variables para ip_forward,
+# la ruta hacia el pool de UE y el MASQUERADE de salida por mgmt.
 ---
 # NIC renombrada por MAC en netplan (match.macaddress + set-name).
 n6_iface: "n6"

@@ -1,0 +1,34 @@
+# open5gs-upf-multus-values.yaml — generado por Ansible (deploy_multus: true).
+# Se pasa como SEGUNDO -f al release {{ open5gs_up_release }}, encima de
+# helm-values/open5gs-upf-values.yaml: solo añade lo que cambia con Multus.
+#
+# UPF con dos interfaces de Multus:
+#   n3 = {{ upf_n3_ip }} (red access): GTP-U con el gNB. Se anuncia esa IP, así
+#        el SMF le da al gNB {{ upf_n3_ip }} como extremo N3.
+#   n6 = {{ upf_n6_ip }} (red n6): salida de los UE hacia dn-gw.
+# PFCP (N4) sigue en eth0, por la red de pods y bajo Cilium.
+# Sin NAT en el UPF: el CGNAT está en dn-gw, fuera del core.
+# El policy routing del pool por n6 lo pone un initContainer que Ansible añade
+# con un patch después del helm (templates/upf-n6-route-patch.yaml.j2).
+#
+# ⚠ NO VERIFICADO contra el chart 2.3.4: 'podAnnotations' y
+#   config.upf.gtpu.{dev,advertise}. Compruébalo con helm template
+#   (docs/pruebas-fase1.md §2).
+upf:
+  podAnnotations:
+    k8s.v1.cni.cncf.io/networks: '[{"name": "access", "interface": "n3", "ips": ["{{ upf_n3_ip }}/{{ access_cidr.split('/')[1] }}"]}, {"name": "n6", "interface": "n6", "ips": ["{{ upf_n6_ip }}/{{ n6_cidr.split('/')[1] }}"]}]'
+  config:
+    upf:
+      gtpu:
+        dev: n3
+        advertise: "{{ upf_n3_ip }}"
+    # Misma lista que en open5gs-upf-values.yaml pero sin NAT. Las listas de
+    # Helm se sustituyen, no se fusionan: hay que repetirla entera.
+    subnetList:
+      - subnet: {{ ue_pool_cidr }}
+        gateway: {{ ue_pool_cidr | regex_replace('\.0/\d+$', '.1') }}
+        dnn: internet
+        dev: ogstun
+        mask: {{ ue_pool_cidr.split('/')[1] }}
+        createDev: true
+        enableNAT: false
