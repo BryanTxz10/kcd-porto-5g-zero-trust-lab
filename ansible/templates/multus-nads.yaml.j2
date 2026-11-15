@@ -25,9 +25,14 @@ spec:
     {
       "cniVersion": "0.3.1",
       "name": "{{ net.name }}",
+{% if net.type | default('ipvlan') == 'host-device' %}
+      "type": "host-device",
+      "device": "{{ net.master }}",
+{% else %}
       "type": "ipvlan",
       "master": "{{ net.master }}",
       "mode": "l2",
+{% endif %}
       "capabilities": { "ips": true },
       "ipam": { "type": "static" }
     }

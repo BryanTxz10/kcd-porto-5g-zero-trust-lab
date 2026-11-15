@@ -322,9 +322,9 @@
               - cni_conf_dir == hostvars[groups['master'][0]].cni_conf_dir
             fail_msg: "Rutas de CNI distintas entre nodos; revisa la versión de k3s de cada uno."
 
-        - name: "¿Están ya ipvlan y static?"
+        - name: "¿Están ya ipvlan, static y host-device?"
           ansible.builtin.stat:
-            path: "{{ cni_bin_dir }}/ipvlan"
+            path: "{{ cni_bin_dir }}/host-device"
           register: cni_ipvlan
 
         - name: "Descargar cni-plugins {{ cni_plugins_version }} (verificado con su .sha256)"
@@ -342,12 +342,12 @@
             mode: "0755"
 
         # Solo los dos que hacen falta: no se pisa cilium-cni ni nada más.
-        - name: "Instalar ipvlan y static en {{ cni_bin_dir }}"
+        - name: "Instalar ipvlan, static y host-device en {{ cni_bin_dir }}"
           ansible.builtin.unarchive:
             src: "/tmp/cni-plugins-{{ cni_plugins_version }}.tgz"
             dest: "{{ cni_bin_dir }}"
             remote_src: true
-            include: ["./ipvlan", "./static"]
+            include: ["./ipvlan", "./static", "./host-device"]
           when: not cni_ipvlan.stat.exists
 
 # =====================================================================
@@ -682,7 +682,7 @@
           ansible.builtin.replace:
             path: "{{ work_dir }}/multi-networkpolicy-iptables.yml"
             regexp: '--network-plugins=[A-Za-z0-9,-]+'
-            replace: '--network-plugins=ipvlan'
+            replace: '--network-plugins=ipvlan,host-device'
 
         - name: "¿El manifiesto ya trae --network-plugins?"
           ansible.builtin.slurp:
@@ -693,7 +693,7 @@
           ansible.builtin.replace:
             path: "{{ work_dir }}/multi-networkpolicy-iptables.yml"
             regexp: '^(\s+)- "?--host-prefix=([^"\n]+)"?$'
-            replace: '\1- "--host-prefix=\2"\n\1- "--network-plugins=ipvlan"'
+            replace: '\1- "--host-prefix=\2"\n\1- "--network-plugins=ipvlan,host-device"'
           when: (mnp_manifest_pre.content | b64decode) is not search('--network-plugins=')
 
         - name: "Leer el manifiesto ajustado"
