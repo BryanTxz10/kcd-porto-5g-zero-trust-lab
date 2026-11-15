@@ -58,7 +58,11 @@ ue_pool_cidr: "10.45.0.0/16"   # pool de IP de los UE (sesiones PDU)
 # templates/multus-nads.yaml.j2
 multus_networks:
   - { name: access, master: "{{ multus_access_iface }}", namespaces: ["{{ ns_cp }}", "{{ ns_ran }}", "{{ ns_up }}"] }
-  - { name: n6, master: "{{ multus_n6_iface }}", namespaces: ["{{ ns_up }}"] }
+  # n6 usa host-device: la NIC entera pasa al pod del UPF (equivalente de
+  # laboratorio a una VF de SR-IOV). ipvlan reparte por IP de destino y no
+  # entrega al UPF el retorno hacia el pool de UE (tráfico enrutado detrás del
+  # pod). Para volver atrás: quitar 'type' (por defecto, ipvlan).
+  - { name: n6, master: "{{ multus_n6_iface }}", namespaces: ["{{ ns_up }}"], type: host-device }
 
 # Tabla de policy routing del UPF: lo que sale del pool de UE va por n6 hacia
 # dn-gw; el resto del pod (N4, DNS) sigue por eth0 (Cilium).
