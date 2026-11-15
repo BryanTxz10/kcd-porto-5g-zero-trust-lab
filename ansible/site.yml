@@ -1143,9 +1143,14 @@
             dest: "{{ work_dir }}/k8s/tetragon/"
             mode: "0644"
 
+        # Tras subir de versión, el operador tarda unos segundos en actualizar
+        # las CRD (tipos nuevos de argumento): se reintenta.
         - name: "Aplicar las políticas de Tetragon"
           ansible.builtin.command: "kubectl apply -k {{ work_dir }}/k8s/tetragon/"
           register: tg_policies
+          retries: 20
+          delay: 6
+          until: tg_policies.rc == 0
           changed_when: "'configured' in tg_policies.stdout or 'created' in tg_policies.stdout"
 
     # ---------- Fase 3: políticas de Cilium para la red de pods ----------

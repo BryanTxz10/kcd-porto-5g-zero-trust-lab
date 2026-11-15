@@ -10,8 +10,9 @@
 # Ver eventos:
 #   kubectl -n kube-system exec ds/tetragon -c tetragon -- \
 #     tetra getevents -o compact --policy-names sockets-redes-dedicadas
-# ⚠ Supuesto sin verificar: el tipo 'sockaddr' y el operador SAddr con CIDR
-#   en Tetragon 1.1 (docs/pruebas-fase6.md §4). CIDR = group_vars/all.yml.
+# Requiere Tetragon >= 1.4 (con 1.1.2 no llegó a cargar). Verificado con
+#   1.4.1: registra el bind y el connect del gNB. Los eventos son por nodo:
+#   usar el pod de Tetragon del nodo que interesa. CIDR = group_vars/all.yml.
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
