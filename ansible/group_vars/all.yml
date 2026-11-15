@@ -131,7 +131,7 @@ ue_dns: ["8.8.8.8", "8.8.4.4"]
 # chart del repo de Cilium); 1.1.x soporta TracingPolicyNamespaced.
 # ⚠ VERIFICAR que la versión del chart existe: el playbook falla si no.
 deploy_tetragon: true
-tetragon_chart_version: "1.1.2"
+tetragon_chart_version: "1.4.1"
 
 # --- Núcleo 5G (chart Helm de Gradiant, Open5GS 2.7.5) ---
 # El repo towards5gs-helm NO publica un chart de Open5GS (solo free5GC y
