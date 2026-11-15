@@ -403,6 +403,7 @@
         --set k8sServiceHost={{ ansible_host }}
         --set k8sServicePort=6443
         --set l7Proxy=true
+        --set rollOutCiliumPods=true
         --set sctp.enabled=true
         --set operator.replicas=1
         --set ipam.mode=cluster-pool
@@ -483,6 +484,28 @@
       when: deploy_multus | bool
       tags: [multus]
 
+    # Desde Multus v4.1.0 el daemon busca los plugins delegados (cilium-cni,
+    # ipvlan, static) en su propio sistema de ficheros y solo hace chroot al
+    # ejecutarlos: el directorio de binarios tiene que estar montado en el
+    # contenedor kube-multus en la MISMA ruta que en el host. El manifiesto de
+    # v4.0.2 no lo monta y la imagen :snapshot-thick ya se comporta así.
+    - name: "Montar los binarios CNI en el contenedor kube-multus"
+      ansible.builtin.replace:
+        path: "{{ work_dir }}/multus-daemonset-thick.yml"
+        regexp: '(            - name: cni\n              mountPath: /host/etc/cni/net\.d\n)(?!            - name: cnibin)'
+        replace: '\1            - name: cnibin\n              mountPath: {{ cni_bin_dir | default(cni_bin_dir_default) }}\n'
+      when: deploy_multus | bool
+      tags: [multus]
+
+    - name: "El manifiesto de Multus monta los binarios CNI en kube-multus"
+      ansible.builtin.command: >-
+        grep -A1 -- "- name: cnibin" {{ work_dir }}/multus-daemonset-thick.yml
+      register: multus_cnibin
+      when: deploy_multus | bool
+      changed_when: false
+      failed_when: "('mountPath: ' ~ (cni_bin_dir | default(cni_bin_dir_default))) not in multus_cnibin.stdout"
+      tags: [multus]
+
     - name: "Instalar Multus (thick daemonset)"
       ansible.builtin.command: "kubectl apply -f {{ work_dir }}/multus-daemonset-thick.yml"
       register: multus_apply
@@ -490,10 +513,65 @@
       changed_when: "'configured' in multus_apply.stdout or 'created' in multus_apply.stdout"
       tags: [multus]
 
+    # El manifiesto de v4.0.2 usa la imagen móvil :snapshot-thick, y el daemon
+    # actual hace list/watch de pods; el ClusterRole de v4.0.2 solo da get/update.
+    - name: "RBAC de Multus: list y watch de pods (daemon :snapshot-thick actual)"
+      ansible.builtin.command: >-
+        kubectl patch clusterrole multus --type=json
+        -p='[{"op":"replace","path":"/rules/1/verbs","value":["get","list","update","watch"]}]'
+      register: multus_rbac
+      when: deploy_multus | bool
+      changed_when: "'no change' not in multus_rbac.stdout"
+      tags: [multus]
+
     - name: "Esperar a Multus en todos los nodos"
       ansible.builtin.command: "kubectl -n kube-system rollout status ds/kube-multus-ds --timeout=300s"
       when: deploy_multus | bool
       changed_when: false
+      tags: [multus]
+
+    # Si un agente de Cilium con cni-exclusive=true vio la config de Multus, la
+    # renombró a 00-multus.conf.cilium_bak y Multus no la vuelve a escribir sola
+    # (solo reacciona a cambios en 05-cilium.conflist). Se regenera reiniciando
+    # el DaemonSet; Cilium ya corre con cni-exclusive=false (rollOutCiliumPods).
+    - name: "¿Está activa la config de Multus en cada nodo?"
+      ansible.builtin.stat:
+        path: "{{ cni_conf_dir | default(cni_conf_dir_default) }}/00-multus.conf"
+      delegate_to: "{{ item }}"
+      loop: "{{ groups['cluster'] }}"
+      register: multus_conf
+      when: deploy_multus | bool
+      tags: [multus]
+
+    - name: "Regenerar la config de Multus donde falte (reinicio del DaemonSet)"
+      ansible.builtin.shell: |
+        kubectl -n kube-system rollout restart ds/kube-multus-ds
+        kubectl -n kube-system rollout status ds/kube-multus-ds --timeout=300s
+      when:
+        - deploy_multus | bool
+        - multus_conf.results | rejectattr('stat.exists') | list | length > 0
+      changed_when: true
+      tags: [multus]
+
+    - name: "La config de Multus está activa en todos los nodos"
+      ansible.builtin.stat:
+        path: "{{ cni_conf_dir | default(cni_conf_dir_default) }}/00-multus.conf"
+      delegate_to: "{{ item }}"
+      loop: "{{ groups['cluster'] }}"
+      register: multus_conf_final
+      until: multus_conf_final.stat.exists
+      retries: 10
+      delay: 3
+      when: deploy_multus | bool
+      tags: [multus]
+
+    - name: "Quitar la copia que dejó Cilium (00-multus.conf.cilium_bak)"
+      ansible.builtin.file:
+        path: "{{ cni_conf_dir | default(cni_conf_dir_default) }}/00-multus.conf.cilium_bak"
+        state: absent
+      delegate_to: "{{ item }}"
+      loop: "{{ groups['cluster'] }}"
+      when: deploy_multus | bool
       tags: [multus]
 
     - name: "Generar los NetworkAttachmentDefinition (access y n6)"
@@ -527,6 +605,10 @@
             helm upgrade --install kyverno kyverno/kyverno
             --version {{ kyverno_chart_version }}
             --namespace kyverno --create-namespace
+            --set webhooksCleanup.image.repository={{ kyverno_kubectl_image }}
+            --set policyReportsCleanup.image.repository={{ kyverno_kubectl_image }}
+            --set cleanupJobs.admissionReports.image.repository={{ kyverno_kubectl_image }}
+            --set cleanupJobs.clusterAdmissionReports.image.repository={{ kyverno_kubectl_image }}
             --wait --timeout 10m
           changed_when: true
 
@@ -584,16 +666,16 @@
         # Ajustes para este clúster: imagen del tag fijado (no :snapshot),
         # socket de containerd de k3s y plugin ipvlan (por defecto solo
         # gestiona macvlan).
-        - name: "Fijar la imagen al tag {{ multi_networkpolicy_version }}"
+        - name: "Fijar la imagen al tag {{ multi_networkpolicy_image_tag }}"
           ansible.builtin.replace:
             path: "{{ work_dir }}/multi-networkpolicy-iptables.yml"
             regexp: '(multi-networkpolicy-iptables):(snapshot|latest)'
-            replace: '\1:{{ multi_networkpolicy_version }}'
+            replace: '\1:{{ multi_networkpolicy_image_tag }}'
 
         - name: "Socket de containerd de k3s"
           ansible.builtin.replace:
             path: "{{ work_dir }}/multi-networkpolicy-iptables.yml"
-            regexp: '/run/containerd/containerd\.sock'
+            regexp: '/run/(?:containerd/containerd|crio/crio)\.sock'
             replace: '/run/k3s/containerd/containerd.sock'
 
         - name: "Gestionar interfaces ipvlan (si ya hay --network-plugins)"
@@ -628,10 +710,27 @@
               - (mnp_manifest.content | b64decode) is search('/run/k3s/containerd/containerd.sock')
             fail_msg: "No se pudo ajustar deploy.yml de multi-networkpolicy-iptables; revisa el manifiesto del tag {{ multi_networkpolicy_version }}."
 
+        # La CRD está en el repositorio multi-networkpolicy,
+        # no en el deploy.yml del daemon.
+        - name: "Instalar la CRD MultiNetworkPolicy"
+          ansible.builtin.command: >
+            kubectl apply -f
+            https://raw.githubusercontent.com/k8snetworkplumbingwg/multi-networkpolicy/{{ multi_networkpolicy_crd_version }}/scheme.yml
+          register: mnp_crd
+          changed_when: "'created' in mnp_crd.stdout or 'configured' in mnp_crd.stdout"
+
+        - name: "Esperar a que la CRD esté establecida"
+          ansible.builtin.command: "kubectl wait --for=condition=Established crd/multi-networkpolicies.k8s.cni.cncf.io --timeout=60s"
+          changed_when: false
+
         - name: "Instalar multi-networkpolicy-iptables"
           ansible.builtin.command: "kubectl apply -f {{ work_dir }}/multi-networkpolicy-iptables.yml"
           register: mnp_apply
           changed_when: "'configured' in mnp_apply.stdout or 'created' in mnp_apply.stdout"
+
+        - name: "Esperar al DaemonSet de multi-networkpolicy-iptables"
+          ansible.builtin.command: "kubectl -n kube-system rollout status ds/multi-networkpolicy-ds-amd64 --timeout=300s"
+          changed_when: false
 
         - name: "Existe la CRD MultiNetworkPolicy"
           ansible.builtin.command: "kubectl get crd multi-networkpolicies.k8s.cni.cncf.io"
@@ -947,21 +1046,25 @@
       ansible.builtin.command: "kubectl -n {{ ns_ran }} rollout status deployment/{{ item }} --timeout=300s"
       loop: [ueransim-gnb, ueransim-ues]
       changed_when: false
-      tags: [ueransim]
+      tags: [ueransim, multus]
 
+    # Se lee la anotación network-status que escribe Multus, sin kubectl exec:
+    # así no depende de qué binarios deje ejecutar Tetragon dentro del AMF.
     - name: "Fase 1: comprobar las interfaces de Multus en AMF, UPF y gNB"
-      ansible.builtin.command: >
-        kubectl -n {{ item.ns }} exec deploy/{{ item.deploy }} --
-        cat /sys/class/net/{{ item.iface }}/address
+      ansible.builtin.command: >-
+        kubectl -n {{ item.ns }} get pod -l app.kubernetes.io/name={{ item.app }}
+        -o jsonpath={.items[*].metadata.annotations.k8s\.v1\.cni\.cncf\.io/network-status}
       loop:
-        - { ns: "{{ ns_cp }}", deploy: "{{ open5gs_release }}-amf", iface: n2 }
-        - { ns: "{{ ns_up }}", deploy: "{{ open5gs_up_release }}-upf", iface: n3 }
-        - { ns: "{{ ns_up }}", deploy: "{{ open5gs_up_release }}-upf", iface: n6 }
-        - { ns: "{{ ns_ran }}", deploy: ueransim-gnb, iface: access }
+        - { ns: "{{ ns_cp }}", app: amf, iface: n2 }
+        - { ns: "{{ ns_up }}", app: upf, iface: n3 }
+        - { ns: "{{ ns_up }}", app: upf, iface: n6 }
+        - { ns: "{{ ns_ran }}", app: ueransim-gnb, iface: access }
       register: multus_ifaces
       when: deploy_multus | bool
       changed_when: false
-      failed_when: multus_ifaces.rc != 0
+      retries: 10
+      delay: 6
+      until: multus_ifaces.stdout is search('"interface":\s*"' ~ item.iface ~ '"')
       tags: [ueransim, multus]
 
     - name: "Fase 1: el gNB hace NG Setup contra el AMF ({{ amf_n2_ip }})"
