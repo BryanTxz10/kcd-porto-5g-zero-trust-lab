@@ -605,6 +605,10 @@
             helm upgrade --install kyverno kyverno/kyverno
             --version {{ kyverno_chart_version }}
             --namespace kyverno --create-namespace
+            --set webhooksCleanup.image.repository={{ kyverno_kubectl_image }}
+            --set policyReportsCleanup.image.repository={{ kyverno_kubectl_image }}
+            --set cleanupJobs.admissionReports.image.repository={{ kyverno_kubectl_image }}
+            --set cleanupJobs.clusterAdmissionReports.image.repository={{ kyverno_kubectl_image }}
             --wait --timeout 10m
           changed_when: true
 

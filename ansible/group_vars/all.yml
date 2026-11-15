@@ -78,6 +78,7 @@ dn_http_port: 8080
 #   3) MultiNetworkPolicy con multi-networkpolicy-iptables (k8s/multinetwork/).
 # Kyverno 1.11.4 (chart 3.1.4) soporta Kubernetes 1.25-1.28.
 kyverno_chart_version: "3.1.4"
+kyverno_kubectl_image: "bitnamilegacy/kubectl"
 # Enforce rechaza; Audit solo registra (útil si la política bloquea algo
 # legítimo la primera vez: kubectl get policyreport -A).
 kyverno_multus_guard_action: "Enforce"
