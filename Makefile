@@ -77,6 +77,10 @@ ran-restart: ## Reinicia gNB y luego UE (tras reinicio del AMF)
 	kubectl -n 5g-ran rollout restart deployment ueransim-ues
 	kubectl -n 5g-ran rollout status deployment ueransim-ues --timeout=120s
 
+.PHONY: cold-start
+cold-start: ## Tras un arranque en frío o reiniciar el UPF: recrea AMF, UPF, SMF, gNB y UE en orden y verifica
+	bash scripts/cold-start.sh
+
 .PHONY: help
 help: ## Muestra esta ayuda
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | \
