@@ -1,0 +1,198 @@
+# Generado por tools/spec2policy (modo standard). NO EDITAR A MANO.
+# Ingress SBI (TCP 7777) de la NF 'udm' en 5g-cp, derivado de:
+#   - tabla productor/consumidor: data/services.yaml
+#   - OpenAPI 3GPP Rel-17 (extractos, mirror fijado por commit):
+#       jdegre/5GC_APIs@06137ac51e2c:TS29503_Nudm_SDM.yaml
+#       jdegre/5GC_APIs@06137ac51e2c:TS29503_Nudm_UEAU.yaml
+#       jdegre/5GC_APIs@06137ac51e2c:TS29503_Nudm_UECM.yaml
+# SCP: en Open5GS las peticiones llegan al productor desde el SCP (comunicación
+# indirecta, TS 23.501 Anexo E). Por eso casi todo el ingress viene de 'scp'.
+# Estado: NO verificado en clúster (ver docs/pruebas-fase5.md).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: spec2policy-sbi-udm
+  namespace: 5g-cp
+  labels:
+    app.kubernetes.io/part-of: spec2policy
+    kcd.io/managed: 'true'
+  annotations:
+    description: 'spec-as-policy (standard): ingress SBI de udm con reglas HTTP por método y path derivadas
+      de los OpenAPI 3GPP de nudm-sdm, nudm-ueau, nudm-uecm.'
+    spec2policy.kcd.io/mode: standard
+    spec2policy.kcd.io/services: nudm-sdm,nudm-ueau,nudm-uecm
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: udm
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/instance: open5gs-cp
+            app.kubernetes.io/name: nrf
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: POST
+                path: /nnrf-nfm/v1/nf-status-notify(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/instance: open5gs-cp
+            app.kubernetes.io/name: scp
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: DELETE
+                path: /nudm-sdm/v2/[^/?]+/sdm-subscriptions/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nudm-sdm/v2/shared-data-subscriptions/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nudm-uecm/v1/[^/?]+/registrations/ip-sm-gw(\?.*)?
+              - method: DELETE
+                path: /nudm-uecm/v1/[^/?]+/registrations/nwdaf-registrations/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nudm-uecm/v1/[^/?]+/registrations/smf-registrations/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nudm-uecm/v1/[^/?]+/registrations/smsf-3gpp-access(\?.*)?
+              - method: DELETE
+                path: /nudm-uecm/v1/[^/?]+/registrations/smsf-non-3gpp-access(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/5mbs-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/am-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/am-data/ecr-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/id-translation-result(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/lcs-bca-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/lcs-mo-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/lcs-privacy-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/nssai(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/prose-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/sm-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/smf-select-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/sms-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/sms-mng-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/trace-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/uc-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/ue-context-in-amf-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/ue-context-in-smf-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/ue-context-in-smsf-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/[^/?]+/v2x-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/group-data/group-identifiers(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/multiple-identifiers(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/shared-data(\?.*)?
+              - method: GET
+                path: /nudm-sdm/v2/shared-data/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudm-ueau/v1/[^/?]+/security-information-rg(\?.*)?
+              - method: GET
+                path: /nudm-uecm/v1/[^/?]+/registrations(\?.*)?
+              - method: GET
+                path: /nudm-uecm/v1/[^/?]+/registrations/amf-3gpp-access(\?.*)?
+              - method: GET
+                path: /nudm-uecm/v1/[^/?]+/registrations/amf-non-3gpp-access(\?.*)?
+              - method: GET
+                path: /nudm-uecm/v1/[^/?]+/registrations/ip-sm-gw(\?.*)?
+              - method: GET
+                path: /nudm-uecm/v1/[^/?]+/registrations/location(\?.*)?
+              - method: GET
+                path: /nudm-uecm/v1/[^/?]+/registrations/nwdaf-registrations(\?.*)?
+              - method: GET
+                path: /nudm-uecm/v1/[^/?]+/registrations/smf-registrations(\?.*)?
+              - method: GET
+                path: /nudm-uecm/v1/[^/?]+/registrations/smf-registrations/[^/?]+(\?.*)?
+              - method: GET
+                path: /nudm-uecm/v1/[^/?]+/registrations/smsf-3gpp-access(\?.*)?
+              - method: GET
+                path: /nudm-uecm/v1/[^/?]+/registrations/smsf-non-3gpp-access(\?.*)?
+              - method: PATCH
+                path: /nudm-sdm/v2/[^/?]+/sdm-subscriptions/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nudm-sdm/v2/shared-data-subscriptions/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nudm-uecm/v1/[^/?]+/registrations/amf-3gpp-access(\?.*)?
+              - method: PATCH
+                path: /nudm-uecm/v1/[^/?]+/registrations/amf-non-3gpp-access(\?.*)?
+              - method: PATCH
+                path: /nudm-uecm/v1/[^/?]+/registrations/nwdaf-registrations/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nudm-uecm/v1/[^/?]+/registrations/smf-registrations/[^/?]+(\?.*)?
+              - method: POST
+                path: /nudm-sdm/v2/[^/?]+/am-data/update-sor(\?.*)?
+              - method: POST
+                path: /nudm-sdm/v2/[^/?]+/sdm-subscriptions(\?.*)?
+              - method: POST
+                path: /nudm-sdm/v2/shared-data-subscriptions(\?.*)?
+              - method: POST
+                path: /nudm-ueau/v1/[^/?]+/auth-events(\?.*)?
+              - method: POST
+                path: /nudm-ueau/v1/[^/?]+/gba-security-information/generate-av(\?.*)?
+              - method: POST
+                path: /nudm-ueau/v1/[^/?]+/hss-security-information/[^/?]+/generate-av(\?.*)?
+              - method: POST
+                path: /nudm-ueau/v1/[^/?]+/prose-security-information/generate-av(\?.*)?
+              - method: POST
+                path: /nudm-ueau/v1/[^/?]+/security-information/generate-auth-data(\?.*)?
+              - method: POST
+                path: /nudm-uecm/v1/[^/?]+/registrations/amf-3gpp-access/dereg-amf(\?.*)?
+              - method: POST
+                path: /nudm-uecm/v1/[^/?]+/registrations/amf-3gpp-access/pei-update(\?.*)?
+              - method: POST
+                path: /nudm-uecm/v1/[^/?]+/registrations/amf-3gpp-access/roaming-info-update(\?.*)?
+              - method: POST
+                path: /nudm-uecm/v1/[^/?]+/registrations/send-routing-info-sm(\?.*)?
+              - method: POST
+                path: /nudm-uecm/v1/restore-pcscf(\?.*)?
+              - method: PUT
+                path: /nudm-sdm/v2/[^/?]+/am-data/cag-ack(\?.*)?
+              - method: PUT
+                path: /nudm-sdm/v2/[^/?]+/am-data/sor-ack(\?.*)?
+              - method: PUT
+                path: /nudm-sdm/v2/[^/?]+/am-data/subscribed-snssais-ack(\?.*)?
+              - method: PUT
+                path: /nudm-sdm/v2/[^/?]+/am-data/upu-ack(\?.*)?
+              - method: PUT
+                path: /nudm-ueau/v1/[^/?]+/auth-events/[^/?]+(\?.*)?
+              - method: PUT
+                path: /nudm-uecm/v1/[^/?]+/registrations/amf-3gpp-access(\?.*)?
+              - method: PUT
+                path: /nudm-uecm/v1/[^/?]+/registrations/amf-non-3gpp-access(\?.*)?
+              - method: PUT
+                path: /nudm-uecm/v1/[^/?]+/registrations/ip-sm-gw(\?.*)?
+              - method: PUT
+                path: /nudm-uecm/v1/[^/?]+/registrations/nwdaf-registrations/[^/?]+(\?.*)?
+              - method: PUT
+                path: /nudm-uecm/v1/[^/?]+/registrations/smf-registrations/[^/?]+(\?.*)?
+              - method: PUT
+                path: /nudm-uecm/v1/[^/?]+/registrations/smsf-3gpp-access(\?.*)?
+              - method: PUT
+                path: /nudm-uecm/v1/[^/?]+/registrations/smsf-non-3gpp-access(\?.*)?
