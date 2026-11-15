@@ -947,21 +947,25 @@
       ansible.builtin.command: "kubectl -n {{ ns_ran }} rollout status deployment/{{ item }} --timeout=300s"
       loop: [ueransim-gnb, ueransim-ues]
       changed_when: false
-      tags: [ueransim]
+      tags: [ueransim, multus]
 
+    # Se lee la anotación network-status que escribe Multus, sin kubectl exec:
+    # así no depende de qué binarios deje ejecutar Tetragon dentro del AMF.
     - name: "Fase 1: comprobar las interfaces de Multus en AMF, UPF y gNB"
-      ansible.builtin.command: >
-        kubectl -n {{ item.ns }} exec deploy/{{ item.deploy }} --
-        cat /sys/class/net/{{ item.iface }}/address
+      ansible.builtin.command: >-
+        kubectl -n {{ item.ns }} get pod -l app.kubernetes.io/name={{ item.app }}
+        -o jsonpath={.items[*].metadata.annotations.k8s\.v1\.cni\.cncf\.io/network-status}
       loop:
-        - { ns: "{{ ns_cp }}", deploy: "{{ open5gs_release }}-amf", iface: n2 }
-        - { ns: "{{ ns_up }}", deploy: "{{ open5gs_up_release }}-upf", iface: n3 }
-        - { ns: "{{ ns_up }}", deploy: "{{ open5gs_up_release }}-upf", iface: n6 }
-        - { ns: "{{ ns_ran }}", deploy: ueransim-gnb, iface: access }
+        - { ns: "{{ ns_cp }}", app: amf, iface: n2 }
+        - { ns: "{{ ns_up }}", app: upf, iface: n3 }
+        - { ns: "{{ ns_up }}", app: upf, iface: n6 }
+        - { ns: "{{ ns_ran }}", app: ueransim-gnb, iface: access }
       register: multus_ifaces
       when: deploy_multus | bool
       changed_when: false
-      failed_when: multus_ifaces.rc != 0
+      retries: 10
+      delay: 6
+      until: multus_ifaces.stdout is search('"interface":\s*"' ~ item.iface ~ '"')
       tags: [ueransim, multus]
 
     - name: "Fase 1: el gNB hace NG Setup contra el AMF ({{ amf_n2_ip }})"

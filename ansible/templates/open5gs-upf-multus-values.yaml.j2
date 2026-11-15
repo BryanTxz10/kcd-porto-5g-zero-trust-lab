@@ -15,6 +15,10 @@
 #   config.upf.gtpu.{dev,advertise}. Compruébalo con helm template
 #   (docs/pruebas-fase1.md §2).
 upf:
+  # IP fija en una red de Multus: el pod viejo tiene que soltarla antes de
+  # que arranque el nuevo (con RollingUpdate el despliegue se bloquea).
+  updateStrategy:
+    type: Recreate
   podAnnotations:
     k8s.v1.cni.cncf.io/networks: '[{"name": "access", "interface": "n3", "ips": ["{{ upf_n3_ip }}/{{ access_cidr.split('/')[1] }}"]}, {"name": "n6", "interface": "n6", "ips": ["{{ upf_n6_ip }}/{{ n6_cidr.split('/')[1] }}"]}]'
   config:

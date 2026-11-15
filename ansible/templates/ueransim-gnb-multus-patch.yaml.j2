@@ -6,6 +6,10 @@
 # Las variables N2_IP/N3_IP/AMF_N2_ADDR no existen en el manifiesto base a
 # propósito: así un 'kubectl apply' del base no deshace este patch.
 spec:
+  # IP fija en la red access: Recreate ($retainKeys quita rollingUpdate).
+  strategy:
+    $retainKeys: [type]
+    type: Recreate
   template:
     metadata:
       annotations:

@@ -9,5 +9,9 @@
 #
 # ⚠ NO VERIFICADO contra el chart 2.3.4: 'amf.podAnnotations'.
 amf:
+  # IP fija en una red de Multus: el pod viejo tiene que soltarla antes de
+  # que arranque el nuevo (con RollingUpdate el despliegue se bloquea).
+  updateStrategy:
+    type: Recreate
   podAnnotations:
     k8s.v1.cni.cncf.io/networks: '[{"name": "access", "interface": "n2", "ips": ["{{ amf_n2_ip }}/{{ access_cidr.split('/')[1] }}"]}]'
