@@ -1053,7 +1053,7 @@
     - name: "Fase 1: comprobar las interfaces de Multus en AMF, UPF y gNB"
       ansible.builtin.command: >-
         kubectl -n {{ item.ns }} get pod -l app.kubernetes.io/name={{ item.app }}
-        -o jsonpath={.items[*].metadata.annotations.k8s\.v1\.cni\.cncf\.io/network-status}
+        -o 'jsonpath={.items[*].metadata.annotations.k8s\.v1\.cni\.cncf\.io/network-status}'
       loop:
         - { ns: "{{ ns_cp }}", app: amf, iface: n2 }
         - { ns: "{{ ns_up }}", app: upf, iface: n3 }
