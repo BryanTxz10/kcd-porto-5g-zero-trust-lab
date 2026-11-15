@@ -66,13 +66,15 @@ spec:
               N2_IP="${N2_IP:-$POD_IP}"
               N3_IP="${N3_IP:-$POD_IP}"
               AMF="${AMF_N2_ADDR:-$AMF_HOST}"
-              until getent hosts "$AMF" >/dev/null; do
-                echo "Esperando DNS del AMF ($AMF)..."; sleep 2
-              done
+              if [[ ! "$AMF" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                until getent hosts "$AMF" >/dev/null; do
+                  echo "Esperando DNS del AMF ($AMF)..."; sleep 2
+                done
+              fi
               sed -e "s/__POD_IP__/${POD_IP}/g" -e "s/__N2_IP__/${N2_IP}/g" \
                   -e "s/__N3_IP__/${N3_IP}/g" -e "s/__AMF_N2__/${AMF}/g" \
                   /config/gnb.yaml > /tmp/gnb.yaml
-              echo "gNB: radio ${POD_IP}, N2 ${N2_IP}, N3 ${N3_IP}; AMF en $(getent hosts "$AMF" | awk '{print $1}')"
+              echo "gNB: radio ${POD_IP}, N2 ${N2_IP}, N3 ${N3_IP}; AMF en ${AMF}"
               exec /ueransim/build/nr-gnb -c /tmp/gnb.yaml
           securityContext:
             capabilities: { add: ["NET_ADMIN"] }
