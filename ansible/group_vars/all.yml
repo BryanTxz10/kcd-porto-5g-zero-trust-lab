@@ -89,6 +89,10 @@ kyverno_kubectl_image: "bitnamilegacy/kubectl"
 # Enforce rechaza; Audit solo registra (útil si la política bloquea algo
 # legítimo la primera vez: kubectl get policyreport -A).
 kyverno_multus_guard_action: "Enforce"
+# Segundos que el gNB espera antes de abrir N2, para que MultiNetworkPolicy
+# ya tenga sus reglas en el pod (si no, la asociación SCTP se pierde a los
+# ~30 s; ver k8s/manifests/ueransim.yaml).
+gnb_start_delay: 20
 # multi-networkpolicy-iptables: si no soporta ipvlan o SCTP en tu clúster, pon
 # false y quédate con L2 + admisión (docs/pruebas-fase2.md §4).
 deploy_multi_networkpolicy: true

@@ -74,6 +74,16 @@ spec:
               sed -e "s/__POD_IP__/${POD_IP}/g" -e "s/__N2_IP__/${N2_IP}/g" \
                   -e "s/__N3_IP__/${N3_IP}/g" -e "s/__AMF_N2__/${AMF}/g" \
                   /config/gnb.yaml > /tmp/gnb.yaml
+              # Con MultiNetworkPolicy las reglas del pod se instalan unos
+              # segundos después de crearlo. Una asociación SCTP abierta antes
+              # queda fuera de conntrack: a los ~30 s el AMF la da por perdida
+              # y el gNB sigue creyéndose conectado varios minutos. Esperar
+              # antes de arrancar evita esa carrera (el patch de Multus fija
+              # GNB_START_DELAY; sin él no se espera).
+              if (( ${GNB_START_DELAY:-0} > 0 )); then
+                echo "Esperando ${GNB_START_DELAY}s a las reglas de MultiNetworkPolicy..."
+                sleep "${GNB_START_DELAY}"
+              fi
               echo "gNB: radio ${POD_IP}, N2 ${N2_IP}, N3 ${N3_IP}; AMF en ${AMF}"
               exec /ueransim/build/nr-gnb -c /tmp/gnb.yaml
           securityContext:
