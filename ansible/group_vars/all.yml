@@ -28,6 +28,9 @@ deploy_multus: false
 # Multus thick (daemonset). Manifiesto del tag fijado; las rutas de CNI del
 # host se ajustan a las que use k3s (se detectan, ver cni_*_dir_default).
 multus_version: "v4.0.2"
+# Límite de memoria del daemon kube-multus. El manifiesto trae 50Mi y no
+# aguanta un arranque en frío (OOMKilled al recrear todos los sandboxes).
+multus_memory_limit: "300Mi"
 # Plugins CNI de referencia que delega Multus (ipvlan, static). Cilium solo
 # instala cilium-cni. Se verifican con el .sha256 publicado junto al tarball.
 cni_plugins_version: "v1.4.1"

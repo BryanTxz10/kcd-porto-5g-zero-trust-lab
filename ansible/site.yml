@@ -506,6 +506,38 @@
       failed_when: "('mountPath: ' ~ (cni_bin_dir | default(cni_bin_dir_default))) not in multus_cnibin.stdout"
       tags: [multus]
 
+    # Arranque en frío. El manifiesto de v4.0.2 instala el shim con cp; tras
+    # un reinicio el kubelet ya está ejecutando multus-shim para los demás
+    # pods, cp falla con "Text file busy", el daemon no arranca y ningún pod
+    # consigue red. install_multus (el del manifiesto actual) copia a un
+    # temporal y renombra, que sí funciona con el binario en uso.
+    - name: "Instalar multus-shim de forma atómica (install_multus)"
+      ansible.builtin.replace:
+        path: "{{ work_dir }}/multus-daemonset-thick.yml"
+        regexp: '            - "cp"\n            - "/usr/src/multus-cni/bin/multus-shim"\n            - "/host/opt/cni/bin/multus-shim"\n'
+        replace: '            - "/usr/src/multus-cni/bin/install_multus"\n            - "-d"\n            - "/host/opt/cni/bin"\n            - "-t"\n            - "thick"\n'
+      when: deploy_multus | bool
+      tags: [multus]
+
+    # Con el límite de 50Mi del manifiesto el daemon muere por OOM cuando un
+    # nodo recrea a la vez todos sus sandboxes (arranque en frío de worker1).
+    - name: "Subir el límite de memoria del daemon de Multus"
+      ansible.builtin.replace:
+        path: "{{ work_dir }}/multus-daemonset-thick.yml"
+        regexp: '(            limits:\n              cpu: "100m"\n              memory: )"50Mi"'
+        replace: '\1"{{ multus_memory_limit }}"'
+      when: deploy_multus | bool
+      tags: [multus]
+
+    - name: "El manifiesto de Multus aguanta un arranque en frío"
+      ansible.builtin.shell: >-
+        grep -q -- '- "/usr/src/multus-cni/bin/install_multus"' {{ work_dir }}/multus-daemonset-thick.yml
+        && grep -q -- 'memory: "{{ multus_memory_limit }}"' {{ work_dir }}/multus-daemonset-thick.yml
+        && ! grep -q -- '- "cp"' {{ work_dir }}/multus-daemonset-thick.yml
+      when: deploy_multus | bool
+      changed_when: false
+      tags: [multus]
+
     - name: "Instalar Multus (thick daemonset)"
       ansible.builtin.command: "kubectl apply -f {{ work_dir }}/multus-daemonset-thick.yml"
       register: multus_apply
