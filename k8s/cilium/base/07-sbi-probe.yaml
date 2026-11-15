@@ -22,4 +22,4 @@ spec:
             - { port: "7777", protocol: TCP }
           rules:
             http:
-              - { method: GET, path: "/nnrf-disc/v1/nf-instances" }
+              - { method: GET, path: "/nnrf-disc/v1/nf-instances(\\?.*)?" }
