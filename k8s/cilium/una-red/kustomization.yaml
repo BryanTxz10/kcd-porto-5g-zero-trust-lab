@@ -5,6 +5,7 @@ kind: Kustomization
 labels:
   - pairs:
       kcd.io/policy-mode: una-red
+      kcd.io/policy-set: lab
 resources:
   - ../base
   - 10-n2.yaml
