@@ -666,16 +666,16 @@
         # Ajustes para este clúster: imagen del tag fijado (no :snapshot),
         # socket de containerd de k3s y plugin ipvlan (por defecto solo
         # gestiona macvlan).
-        - name: "Fijar la imagen al tag {{ multi_networkpolicy_version }}"
+        - name: "Fijar la imagen al tag {{ multi_networkpolicy_image_tag }}"
           ansible.builtin.replace:
             path: "{{ work_dir }}/multi-networkpolicy-iptables.yml"
             regexp: '(multi-networkpolicy-iptables):(snapshot|latest)'
-            replace: '\1:{{ multi_networkpolicy_version }}'
+            replace: '\1:{{ multi_networkpolicy_image_tag }}'
 
         - name: "Socket de containerd de k3s"
           ansible.builtin.replace:
             path: "{{ work_dir }}/multi-networkpolicy-iptables.yml"
-            regexp: '/run/containerd/containerd\.sock'
+            regexp: '/run/(?:containerd/containerd|crio/crio)\.sock'
             replace: '/run/k3s/containerd/containerd.sock'
 
         - name: "Gestionar interfaces ipvlan (si ya hay --network-plugins)"
@@ -710,10 +710,27 @@
               - (mnp_manifest.content | b64decode) is search('/run/k3s/containerd/containerd.sock')
             fail_msg: "No se pudo ajustar deploy.yml de multi-networkpolicy-iptables; revisa el manifiesto del tag {{ multi_networkpolicy_version }}."
 
+        # La CRD está en el repositorio multi-networkpolicy,
+        # no en el deploy.yml del daemon.
+        - name: "Instalar la CRD MultiNetworkPolicy"
+          ansible.builtin.command: >
+            kubectl apply -f
+            https://raw.githubusercontent.com/k8snetworkplumbingwg/multi-networkpolicy/{{ multi_networkpolicy_crd_version }}/scheme.yml
+          register: mnp_crd
+          changed_when: "'created' in mnp_crd.stdout or 'configured' in mnp_crd.stdout"
+
+        - name: "Esperar a que la CRD esté establecida"
+          ansible.builtin.command: "kubectl wait --for=condition=Established crd/multi-networkpolicies.k8s.cni.cncf.io --timeout=60s"
+          changed_when: false
+
         - name: "Instalar multi-networkpolicy-iptables"
           ansible.builtin.command: "kubectl apply -f {{ work_dir }}/multi-networkpolicy-iptables.yml"
           register: mnp_apply
           changed_when: "'configured' in mnp_apply.stdout or 'created' in mnp_apply.stdout"
+
+        - name: "Esperar al DaemonSet de multi-networkpolicy-iptables"
+          ansible.builtin.command: "kubectl -n kube-system rollout status ds/multi-networkpolicy-ds-amd64 --timeout=300s"
+          changed_when: false
 
         - name: "Existe la CRD MultiNetworkPolicy"
           ansible.builtin.command: "kubectl get crd multi-networkpolicies.k8s.cni.cncf.io"

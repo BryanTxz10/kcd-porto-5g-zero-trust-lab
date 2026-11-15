@@ -87,7 +87,9 @@ kyverno_multus_guard_action: "Enforce"
 deploy_multi_networkpolicy: true
 # ⚠ VERIFICAR que el tag existe (manifiesto deploy.yml e imagen en ghcr.io):
 #   el playbook falla al descargarlo si no.
-multi_networkpolicy_version: "v0.2.0"
+multi_networkpolicy_version: "cbf2b11730b9fb0477d8d578129609df0c51f06b"
+multi_networkpolicy_image_tag: "snapshot"
+multi_networkpolicy_crd_version: "v1.0.1"
 
 # --- mTLS en la SBI (Fase 4) ---
 # sbi_tls: true -> todas las NF hablan HTTPS con certificado de cliente
