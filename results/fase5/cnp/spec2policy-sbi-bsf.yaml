@@ -1,0 +1,80 @@
+# Generado por tools/spec2policy (modo standard). NO EDITAR A MANO.
+# Ingress SBI (TCP 7777) de la NF 'bsf' en 5g-cp, derivado de:
+#   - tabla productor/consumidor: data/services.yaml
+#   - OpenAPI 3GPP Rel-17 (extractos, mirror fijado por commit):
+#       jdegre/5GC_APIs@06137ac51e2c:TS29521_Nbsf_Management.yaml
+# SCP: en Open5GS las peticiones llegan al productor desde el SCP (comunicación
+# indirecta, TS 23.501 Anexo E). Por eso casi todo el ingress viene de 'scp'.
+# Estado: NO verificado en clúster (ver docs/pruebas-fase5.md).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: spec2policy-sbi-bsf
+  namespace: 5g-cp
+  labels:
+    app.kubernetes.io/part-of: spec2policy
+    kcd.io/managed: 'true'
+  annotations:
+    description: 'spec-as-policy (standard): ingress SBI de bsf con reglas HTTP por método y path derivadas
+      de los OpenAPI 3GPP de nbsf-management.'
+    spec2policy.kcd.io/mode: standard
+    spec2policy.kcd.io/services: nbsf-management
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: bsf
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/instance: open5gs-cp
+            app.kubernetes.io/name: nrf
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: POST
+                path: /nnrf-nfm/v1/nf-status-notify(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/instance: open5gs-cp
+            app.kubernetes.io/name: scp
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: DELETE
+                path: /nbsf-management/v1/pcf-mbs-bindings/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nbsf-management/v1/pcf-ue-bindings/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nbsf-management/v1/pcfBindings/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /nbsf-management/v1/subscriptions/[^/?]+(\?.*)?
+              - method: GET
+                path: /nbsf-management/v1/pcf-mbs-bindings(\?.*)?
+              - method: GET
+                path: /nbsf-management/v1/pcf-ue-bindings(\?.*)?
+              - method: GET
+                path: /nbsf-management/v1/pcfBindings(\?.*)?
+              - method: PATCH
+                path: /nbsf-management/v1/pcf-mbs-bindings/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nbsf-management/v1/pcf-ue-bindings/[^/?]+(\?.*)?
+              - method: PATCH
+                path: /nbsf-management/v1/pcfBindings/[^/?]+(\?.*)?
+              - method: POST
+                path: /nbsf-management/v1/pcf-mbs-bindings(\?.*)?
+              - method: POST
+                path: /nbsf-management/v1/pcf-ue-bindings(\?.*)?
+              - method: POST
+                path: /nbsf-management/v1/pcfBindings(\?.*)?
+              - method: POST
+                path: /nbsf-management/v1/subscriptions(\?.*)?
+              - method: PUT
+                path: /nbsf-management/v1/subscriptions/[^/?]+(\?.*)?

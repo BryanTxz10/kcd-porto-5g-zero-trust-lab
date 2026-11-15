@@ -1,0 +1,83 @@
+# Generado por tools/spec2policy (modo standard). NO EDITAR A MANO.
+# Ingress SBI (TCP 7777) de la NF 'smf' en 5g-cp, derivado de:
+#   - tabla productor/consumidor: data/services.yaml
+#   - OpenAPI 3GPP Rel-17 (extractos, mirror fijado por commit):
+#       jdegre/5GC_APIs@06137ac51e2c:TS29502_Nsmf_PDUSession.yaml
+# SCP: en Open5GS las peticiones llegan al productor desde el SCP (comunicación
+# indirecta, TS 23.501 Anexo E). Por eso casi todo el ingress viene de 'scp'.
+# Estado: NO verificado en clúster (ver docs/pruebas-fase5.md).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: spec2policy-sbi-smf
+  namespace: 5g-cp
+  labels:
+    app.kubernetes.io/part-of: spec2policy
+    kcd.io/managed: 'true'
+  annotations:
+    description: 'spec-as-policy (standard): ingress SBI de smf con reglas HTTP por método y path derivadas
+      de los OpenAPI 3GPP de nsmf-pdusession.'
+    spec2policy.kcd.io/mode: standard
+    spec2policy.kcd.io/services: nsmf-pdusession
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: smf
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/instance: open5gs-cp
+            app.kubernetes.io/name: nrf
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: POST
+                path: /nnrf-nfm/v1/nf-status-notify(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/instance: open5gs-cp
+            app.kubernetes.io/name: pcf
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: POST
+                path: /nsmf-callback/v1/sm-policy-notify/[^/?]+(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/instance: open5gs-cp
+            app.kubernetes.io/name: scp
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: POST
+                path: /nsmf-pdusession/v1/pdu-sessions(\?.*)?
+              - method: POST
+                path: /nsmf-pdusession/v1/pdu-sessions/[^/?]+/modify(\?.*)?
+              - method: POST
+                path: /nsmf-pdusession/v1/pdu-sessions/[^/?]+/release(\?.*)?
+              - method: POST
+                path: /nsmf-pdusession/v1/pdu-sessions/[^/?]+/retrieve(\?.*)?
+              - method: POST
+                path: /nsmf-pdusession/v1/pdu-sessions/[^/?]+/transfer-mo-data(\?.*)?
+              - method: POST
+                path: /nsmf-pdusession/v1/sm-contexts(\?.*)?
+              - method: POST
+                path: /nsmf-pdusession/v1/sm-contexts/[^/?]+/modify(\?.*)?
+              - method: POST
+                path: /nsmf-pdusession/v1/sm-contexts/[^/?]+/release(\?.*)?
+              - method: POST
+                path: /nsmf-pdusession/v1/sm-contexts/[^/?]+/retrieve(\?.*)?
+              - method: POST
+                path: /nsmf-pdusession/v1/sm-contexts/[^/?]+/send-mo-data(\?.*)?

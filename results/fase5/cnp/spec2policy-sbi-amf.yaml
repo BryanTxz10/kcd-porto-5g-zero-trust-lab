@@ -1,0 +1,108 @@
+# Generado por tools/spec2policy (modo standard). NO EDITAR A MANO.
+# Ingress SBI (TCP 7777) de la NF 'amf' en 5g-cp, derivado de:
+#   - tabla productor/consumidor: data/services.yaml
+#   - OpenAPI 3GPP Rel-17 (extractos, mirror fijado por commit):
+#       jdegre/5GC_APIs@06137ac51e2c:TS29518_Namf_Communication.yaml
+# SCP: en Open5GS las peticiones llegan al productor desde el SCP (comunicación
+# indirecta, TS 23.501 Anexo E). Por eso casi todo el ingress viene de 'scp'.
+# Estado: NO verificado en clúster (ver docs/pruebas-fase5.md).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: spec2policy-sbi-amf
+  namespace: 5g-cp
+  labels:
+    app.kubernetes.io/part-of: spec2policy
+    kcd.io/managed: 'true'
+  annotations:
+    description: 'spec-as-policy (standard): ingress SBI de amf con reglas HTTP por método y path derivadas
+      de los OpenAPI 3GPP de namf-comm.'
+    spec2policy.kcd.io/mode: standard
+    spec2policy.kcd.io/services: namf-comm
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: amf
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/instance: open5gs-cp
+            app.kubernetes.io/name: nrf
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: POST
+                path: /nnrf-nfm/v1/nf-status-notify(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/instance: open5gs-cp
+            app.kubernetes.io/name: pcf
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: POST
+                path: /namf-callback/v1/am-policy-notify/[^/?]+(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/instance: open5gs-cp
+            app.kubernetes.io/name: scp
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: DELETE
+                path: /namf-comm/v1/non-ue-n2-messages/subscriptions/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /namf-comm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: DELETE
+                path: /namf-comm/v1/ue-contexts/[^/?]+/n1-n2-messages/subscriptions/[^/?]+(\?.*)?
+              - method: POST
+                path: /namf-comm/v1/non-ue-n2-messages/subscriptions(\?.*)?
+              - method: POST
+                path: /namf-comm/v1/non-ue-n2-messages/transfer(\?.*)?
+              - method: POST
+                path: /namf-comm/v1/subscriptions(\?.*)?
+              - method: POST
+                path: /namf-comm/v1/ue-contexts/[^/?]+/assign-ebi(\?.*)?
+              - method: POST
+                path: /namf-comm/v1/ue-contexts/[^/?]+/cancel-relocate(\?.*)?
+              - method: POST
+                path: /namf-comm/v1/ue-contexts/[^/?]+/n1-n2-messages(\?.*)?
+              - method: POST
+                path: /namf-comm/v1/ue-contexts/[^/?]+/n1-n2-messages/subscriptions(\?.*)?
+              - method: POST
+                path: /namf-comm/v1/ue-contexts/[^/?]+/release(\?.*)?
+              - method: POST
+                path: /namf-comm/v1/ue-contexts/[^/?]+/relocate(\?.*)?
+              - method: POST
+                path: /namf-comm/v1/ue-contexts/[^/?]+/transfer(\?.*)?
+              - method: POST
+                path: /namf-comm/v1/ue-contexts/[^/?]+/transfer-update(\?.*)?
+              - method: PUT
+                path: /namf-comm/v1/subscriptions/[^/?]+(\?.*)?
+              - method: PUT
+                path: /namf-comm/v1/ue-contexts/[^/?]+(\?.*)?
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: 5g-cp
+            app.kubernetes.io/instance: open5gs-cp
+            app.kubernetes.io/name: udm
+      toPorts:
+        - ports:
+            - port: '7777'
+              protocol: TCP
+          rules:
+            http:
+              - method: POST
+                path: /namf-callback/v1/[^/?]+/dereg-notify(\?.*)?
