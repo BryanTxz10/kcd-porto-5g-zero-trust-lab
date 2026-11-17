@@ -8,6 +8,23 @@
             mnc: "{{ plmn_mnc }}"
 {%- endmacro %}
 {% macro sbi(nf, client) %}
+{% if tls %}
+      # Open5GS 2.7 solo lee 'default' DENTRO de la sección de la NF
+      # (lib/sbi/context.c); en la raíz se ignora y el servidor queda en http.
+      default:
+        tls:
+          server:
+            scheme: https
+            private_key: {{ sbi_tls_mount }}/tls.key
+            cert: {{ sbi_tls_mount }}/tls.crt
+            verify_client: true
+            verify_client_cacert: {{ sbi_tls_mount }}/ca.crt
+          client:
+            scheme: https
+            cacert: {{ sbi_tls_mount }}/ca.crt
+            client_private_key: {{ sbi_tls_mount }}/tls.key
+            client_cert: {{ sbi_tls_mount }}/tls.crt
+{% endif %}
       sbi:
         server:
           - dev: eth0
@@ -31,21 +48,6 @@
     global:
       max:
         ue: 1024
-{% if tls %}
-    default:
-      tls:
-        server:
-          scheme: https
-          private_key: {{ sbi_tls_mount }}/tls.key
-          cert: {{ sbi_tls_mount }}/tls.crt
-          verify_client: true
-          verify_client_cacert: {{ sbi_tls_mount }}/ca.crt
-        client:
-          scheme: https
-          cacert: {{ sbi_tls_mount }}/ca.crt
-          client_private_key: {{ sbi_tls_mount }}/tls.key
-          client_cert: {{ sbi_tls_mount }}/tls.crt
-{% endif %}
 {%- endmacro %}
 {% macro metrics() %}
       metrics:
@@ -86,7 +88,7 @@
 # Open5GS v2.7.5:
 #   - AMF: siempre que deploy_multus o sbi_tls (NGAP en {{ amf_n2_ip if multus else 'eth0' }}).
 #   - Resto de NF: solo con sbi_tls.
-# Con sbi_tls, cada NF lleva default.tls.server (https, verify_client: true)
+# Con sbi_tls, cada NF lleva <nf>.default.tls.server (https, verify_client: true)
 # y default.tls.client (https, certificado de cliente), anuncia el FQDN de
 # su Service (advertise) para que el certificado valide por nombre, y las URI
 # del SCP y del NRF pasan a https://.
