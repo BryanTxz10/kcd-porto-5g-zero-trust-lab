@@ -1,5 +1,7 @@
 # kcd-porto-5g-zero-trust-lab
 
+> **Work in progress.** This lab is being cleaned up after KCD Porto 2026, so expect rough edges. Issues and pull requests are limited to collaborators for now.
+
 A 5G standalone core (Open5GS) running on Kubernetes, deployed the way an operator
 would deploy it, and used as a stress test for Zero Trust in cloud native
 infrastructure. It is the lab behind the talk **"Zero Trust for a cloud native 5G
